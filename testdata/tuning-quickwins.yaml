@@ -1,0 +1,31 @@
+quick_wins:
+  - id: QW-1
+    name: Surface RP launch attributes in prompts
+    description: >-
+      Add LaunchAttributes to TemplateParams. Render as metadata table
+      in triage/resolve prompts.
+    metric_target: M12/M13 improvement via better component identification
+
+  - id: QW-2
+    name: Wire Jira links from ExternalSystemIssues
+    description: >-
+      Extract ExternalSystemIssues from RP Issue. Pass Jira URLs into
+      TemplateParams for triage/investigate.
+    metric_target: M1/M15 improvement via direct evidence links
+    prereqs: [QW-1]
+
+  - id: QW-3
+    name: Tune heuristic keyword maps
+    description: >-
+      Analyze misclassification patterns from E2E run. Adjust
+      keyword-to-component mappings.
+    metric_target: M1 improvement on recurring misclassifications
+    prereqs: [QW-1, QW-2]
+
+  - id: QW-4
+    name: Evidence gap-driven tuning
+    description: >-
+      Use EvidenceGapBrief output to prioritize tuning actions. Gap
+      categories map to QW-1/2/3 code locations.
+    metric_target: Data-driven tuning prioritization
+    prereqs: [QW-1, QW-2, QW-3]

@@ -1,0 +1,163 @@
+# RCA Investigation Circuit — Schematic Base
+#
+# Canonical circuit topology owned by the RCA schematic. Consumers import
+# this base via `import: rca` and overlay domain-specific additions
+# (e.g., gather-code node, tuning vars).
+#
+# Pipeline:
+#   recall     → pattern-match against known failures database
+#   triage     → classify symptom, pick candidate repos
+#   resolve    → select next repo to investigate
+#   investigate → deep-dive: log analysis, commit correlation, evidence
+#   correlate  → cross-reference findings, detect serial killers
+#   review     → adversarial quality gate (approve / reassess / overturn)
+#   report     → produce final structured RCA
+
+circuit: rca
+topology: cascade
+handler_type: transformer
+
+zones:
+  intake:
+    nodes: [recall, triage]
+  analysis:
+    nodes: [resolve, investigate]
+  synthesis:
+    nodes: [correlate, review, report]
+
+vars:
+  recall_hit: 0.80
+  recall_uncertain: 0.40
+  convergence_sufficient: 0.50
+  max_investigate_loops: 1
+  correlate_dup: 0.80
+
+nodes:
+  - name: recall
+    description: "Pattern-match against known failures database; shortcut to review on high-confidence hit"
+    approach: analytical
+    handler: recall
+    prompt: prompts/recall/judge-similarity.md
+    output_schema: schemas/rca/F0_RECALL.yaml
+    after: [store.recall]
+    edges:
+      - name: recall-hit
+        to: review
+        shortcut: true
+        when: "output.match == true && output.confidence >= config.recall_hit"
+      - name: recall-uncertain
+        to: triage
+        when: "output.match == true && output.confidence >= config.recall_uncertain && output.confidence < config.recall_hit"
+      - name: recall-miss
+        to: triage
+        when: "output.match != true"
+
+  - name: triage
+    description: "Classify failure symptom (infra, flake, product bug) and select candidate repos"
+    approach: analytical
+    handler: triage
+    prompt: prompts/triage/classify-symptoms.md
+    output_schema: schemas/rca/F1_TRIAGE.yaml
+    after: [store.triage]
+    edges:
+      - name: triage-skip-infra
+        to: review
+        shortcut: true
+        when: 'output.symptom_category == "infra"'
+      - name: triage-skip-flake
+        to: review
+        shortcut: true
+        when: 'output.symptom_category == "flake"'
+      - name: triage-skip-investigation
+        to: review
+        shortcut: true
+        when: "output.skip_investigation == true"
+      - name: triage-single-repo
+        to: investigate
+        shortcut: true
+        when: "output.skip_investigation != true && len(output.candidate_repos) == 1"
+      - name: triage-investigate
+        to: resolve
+        when: "output.skip_investigation != true"
+
+  - name: resolve
+    description: "Select the next repo to investigate from the candidate set"
+    approach: analytical
+    handler: resolve
+    prompt: prompts/resolve/select-repo.md
+    output_schema: schemas/rca/F2_RESOLVE.yaml
+    edges:
+      - name: resolve-multi
+        to: investigate
+        when: "true"
+
+  - name: investigate
+    description: "Deep-dive into a single repo: log analysis, commit correlation, evidence gathering"
+    approach: holistic
+    handler: investigate
+    prompt: prompts/investigate/deep-rca.md
+    output_schema: schemas/rca/F3_INVESTIGATE.yaml
+    after: [store.investigate]
+    edges:
+      - name: investigate-converged
+        to: correlate
+        when: "output.convergence_score >= config.convergence_sufficient"
+      - name: investigate-no-evidence-skip
+        to: correlate
+        when: "output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) == 0"
+      - name: investigate-low
+        to: resolve
+        loop: true
+        when: "output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) > 0 && state.loops.investigate < config.max_investigate_loops"
+      - name: investigate-exhausted
+        to: review
+        shortcut: true
+        when: "output.convergence_score < config.convergence_sufficient && state.loops.investigate >= config.max_investigate_loops"
+
+  - name: correlate
+    description: "Cross-reference findings across repos; detect duplicates against prior RCAs"
+    approach: analytical
+    handler: correlate
+    prompt: prompts/correlate/match-cases.md
+    output_schema: schemas/rca/F4_CORRELATE.yaml
+    after: [store.correlate]
+    edges:
+      - name: correlate-dup
+        to: DONE
+        when: "output.is_duplicate == true && output.confidence >= config.correlate_dup"
+      - name: correlate-proceed
+        to: review
+        when: "true"
+
+  - name: review
+    description: "Adversarial quality gate: approve, reassess, or overturn the draft RCA"
+    approach: rigorous
+    handler: review
+    prompt: prompts/review/present-findings.md
+    output_schema: schemas/rca/F5_REVIEW.yaml
+    after: [store.review]
+    edges:
+      - name: review-approve
+        to: report
+        when: 'output.decision == "approve"'
+      - name: review-reassess
+        to: resolve
+        loop: true
+        when: 'output.decision == "reassess"'
+      - name: review-overturn
+        to: report
+        when: 'output.decision == "overturn"'
+
+  - name: report
+    description: "Produce the final structured RCA with defect type, confidence, and evidence links"
+    approach: methodical
+    handler: report
+    prompt: prompts/report/regression-table.md
+    output_schema: schemas/rca/F6_REPORT.yaml
+    edges:
+      - name: report-done
+        to: DONE
+        when: "true"
+
+start: recall
+done: DONE

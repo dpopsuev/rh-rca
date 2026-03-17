@@ -1,0 +1,39 @@
+name: transcript-report
+format: markdown
+sections:
+  - type: text
+    content: "# {{ .transcript_title }}"
+
+  - type: table
+    columns: [Field, Value]
+    data: header_fields
+
+  - type: header
+    title: "Primary Investigation"
+    level: 2
+
+  - type: text
+    content: "{{ .primary_info }}"
+
+  - type: repeat
+    items: primary_entries
+    body:
+      - type: text
+        content: "### {{ .entry_title }}"
+      - type: text
+        content: "{{ .entry_body }}"
+
+  - type: repeat
+    items: correlated_cases
+    body:
+      - type: text
+        content: "## {{ .case_title }}"
+      - type: text
+        content: "{{ .case_info }}"
+      - type: repeat
+        items: entries
+        body:
+          - type: text
+            content: "### {{ .entry_title }}"
+          - type: text
+            content: "{{ .entry_body }}"

@@ -1,0 +1,37 @@
+component: rh-rca
+module: github.com/dpopsuev/rh-rca/mcpconfig
+namespace: rca
+version: "1.0.0"
+description: "Red Hat Root Cause Analysis — CI failure investigation circuit"
+factory: NewServer
+provides:
+  transformers: [context-builder, prompt-filler]
+  extractors: [recall, triage, resolve, investigate, correlate, review, report]
+  hooks: [store.recall, store.triage, store.investigate, store.correlate, store.review]
+requires:
+  origami: ">=0.3.0"
+  sockets:
+    - name: store
+      type: store.Store
+      option: WithStore
+      description: Persistent storage backend (built-in SQLite default)
+      optional: true
+    - name: source
+      type: SourceReader
+      option: WithSourceReader
+      description: Reads test failure data from an external tracker
+    - name: writer
+      type: DefectWriter
+      option: WithDefectWriter
+      description: Writes RCA results back to the external tracker
+      optional: true
+    - name: discoverer
+      type: RunDiscoverer
+      option: WithRunDiscoverer
+      description: Discovers available CI runs and their failures
+      optional: true
+    - name: dsr
+      type: dsr.Reader
+      option: WithDSRReader
+      description: Data source retriever (git repos, web docs)
+      schematic: rh-dsr

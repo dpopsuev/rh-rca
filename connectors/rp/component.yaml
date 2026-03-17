@@ -1,0 +1,20 @@
+component: rh-rca-reportportal
+module: github.com/dpopsuev/rh-rca/connectors/rp
+namespace: reportportal
+version: "1.0.0"
+description: "ReportPortal connector — API client, envelope fetching, defect pushing, run discovery"
+provides:
+  transformers: []
+  hooks: []
+requires:
+  origami: ">=0.3.0"
+satisfies:
+  - socket: source
+    factory: NewSourceReader
+    wire: factory
+  - socket: writer
+    factory: NewDefectWriter
+    wire: factory
+  - socket: discoverer
+    factory: NewRunDiscoverer
+    wire: factory

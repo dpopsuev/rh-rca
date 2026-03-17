@@ -1,0 +1,71 @@
+defect_types:
+  pb001: {short: pb001, long: Product Bug}
+  ab001: {short: ab001, long: Automation Bug}
+  au001: {short: au001, long: Automation Bug}
+  si001: {short: si001, long: System Issue}
+  en001: {short: en001, long: Environment Issue}
+  fw001: {short: fw001, long: Firmware Issue}
+  nd001: {short: nd001, long: No Defect}
+  ti001: {short: ti001, long: To Investigate}
+  ib003: {short: ib003, long: Infrastructure Bug}
+
+stages:
+  F0:             {short: F0, long: Recall}
+  F1:             {short: F1, long: Triage}
+  F2:             {short: F2, long: Resolve}
+  F3:             {short: F3, long: Investigate}
+  F4:             {short: F4, long: Correlate}
+  F5:             {short: F5, long: Review}
+  F6:             {short: F6, long: Report}
+  F0_RECALL:      {short: F0, long: Recall}
+  F1_TRIAGE:      {short: F1, long: Triage}
+  F2_RESOLVE:     {short: F2, long: Resolve}
+  F3_INVESTIGATE: {short: F3, long: Investigate}
+  F4_CORRELATE:   {short: F4, long: Correlate}
+  F5_REVIEW:      {short: F5, long: Review}
+  F6_REPORT:      {short: F6, long: Report}
+  INIT:           {short: INIT, long: Init}
+  DONE:           {short: DONE, long: Done}
+
+metrics:
+  M1:   {short: M1, long: Defect Type Accuracy}
+  M2:   {short: M2, long: Symptom Category Accuracy}
+  M3:   {short: M3, long: Recall Hit Rate}
+  M4:   {short: M4, long: Recall False Positive Rate}
+  M5:   {short: M5, long: Serial Killer Detection}
+  M6:   {short: M6, long: Skip Accuracy}
+  M7:   {short: M7, long: Cascade Detection}
+  M8:   {short: M8, long: Convergence Calibration}
+  M9:   {short: M9, long: Repo Selection Precision}
+  M10:  {short: M10, long: Repo Selection Recall}
+  M11:  {short: M11, long: Red Herring Rejection}
+  M12:  {short: M12, long: Evidence Recall}
+  M13:  {short: M13, long: Evidence Precision}
+  M14:  {short: M14, long: RCA Message Relevance}
+  M14b: {short: M14b, long: Smoking Gun Hit Rate}
+  M15:  {short: M15, long: Component Identification}
+  M16:  {short: M16, long: Pipeline Path Accuracy}
+  M17:  {short: M17, long: Loop Efficiency}
+  M18:  {short: M18, long: Total Prompt Tokens}
+  M19:  {short: M19, long: Overall Accuracy}
+  M20:  {short: M20, long: Run Variance}
+
+heuristics:
+  H1:  {short: H1, long: Recall Hit}
+  H2:  {short: H2, long: Recall Miss}
+  H3:  {short: H3, long: Recall Uncertain}
+  H4:  {short: H4, long: Triage Investigate}
+  H5:  {short: H5, long: Triage Skip}
+  H6:  {short: H6, long: Triage Cascade}
+  H7:  {short: H7, long: Resolve Single Repo}
+  H8:  {short: H8, long: Resolve Multi Repo}
+  H9:  {short: H9, long: Investigate Converged}
+  H10: {short: H10, long: Investigate Loop}
+  H11: {short: H11, long: Investigate Exhausted}
+  H12: {short: H12, long: Correlate Duplicate}
+  H13: {short: H13, long: Correlate Unique}
+  H14: {short: H14, long: Review Approve}
+  H15: {short: H15, long: Review Reassess}
+  H16: {short: H16, long: Review Overturn}
+  H17: {short: H17, long: Report Emit}
+  H18: {short: H18, long: Investigate Reopen}

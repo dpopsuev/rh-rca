@@ -1,0 +1,24 @@
+{
+  "run_id": "test-run-001",
+  "name": "PTP Test Launch",
+  "failure_list": [
+    {
+      "id": "f1",
+      "name": "OCP-83297 PTP sync stability",
+      "status": "FAILED",
+      "error_message": "ptp4l clock offset exceeded threshold: 250ns > 100ns",
+      "log_snippet": "phc2sys[1234]: master offset -180 s2 freq -2300 path delay 500"
+    },
+    {
+      "id": "f2",
+      "name": "OCP-83300 PTP config cleanup",
+      "status": "FAILED",
+      "error_message": "test setup failed: PTP configuration not cleaned between runs",
+      "log_snippet": "linuxptp-daemon-container: failed to remove ptp4l config"
+    }
+  ],
+  "tags": {
+    "version": "4.21",
+    "job": "[T-TSC]"
+  }
+}

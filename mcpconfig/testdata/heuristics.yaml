@@ -1,0 +1,135 @@
+# PTP-domain heuristic rules for the basic (zero-LLM) analysis mode.
+# Rules are evaluated top-to-bottom; first match wins.
+
+# --- Defect classification ---
+# Result fields: category, hypothesis, skip (investigation).
+defect_classification:
+  rules:
+    # automation_skip: specific known-flaky patterns
+    - any_of: ["automation:", "add version conditions", "flip-flop between 6 and 248", "they should work with ntpfailover"]
+      result: {category: automation, hypothesis: au001, skip: true}
+
+    # environment_skip
+    - any_of: ["ordinary clock 2 port failure"]
+      result: {category: environment, hypothesis: en001, skip: true}
+
+    # isHTTPEventsEnvSkip: http events from Jenkins without Jira/Ginkgo context
+    - all_of: ["http events using consumer", "/var/lib/jenkins"]
+      none_of: ["ocpbugs-", "losing subscription"]
+      none_regex: ["cnf-[0-9]"]
+      not_all_of: ["ran ", " specs "]
+      result: {category: environment, hypothesis: en001, skip: true}
+
+    # automation_generic: test framework failures
+    - any_of: ["test setup failed", "ginkgo internal", "test teardown"]
+      result: {category: automation, hypothesis: au001, skip: true}
+
+    # isBareEventsMetricsPath: bare file path with <= 2 words
+    - all_of: ["ptp_events_and_metrics.go"]
+      regex: ["^\\s*\\S+(\\s+\\S+)?\\s*$"]
+      result: {category: automation, hypothesis: au001, skip: true}
+
+    # product keywords
+    - any_of: ["ptp", "linuxptp", "phc2sys", "ptp4l", "clock", "gnss",
+               "offset", "configmap", "sidecar", "consumer", "cloud event",
+               "ptp_events", "ptp_recovery", "ptp_interfaces", "ntpfailover",
+               "workload partitioning", "holdover", "locked"]
+      result: {category: product, hypothesis: pb001, skip: false}
+
+    # firmware
+    - any_of: ["firmware", "bios", "hardware fault"]
+      result: {category: firmware, hypothesis: fw001, skip: false}
+
+    # infra
+    - any_of: ["timeout", "connection refused", "dns", "network",
+               "node not ready", "kubelet", "unreachable"]
+      result: {category: infra, hypothesis: ti001, skip: true}
+
+    # hardcoded fallbacks (Jenkins paths, Jira IDs)
+    - any_of: ["/var/lib/jenkins", "ocpbugs-", "cnf-"]
+      result: {category: product, hypothesis: pb001, skip: false}
+
+  default: {category: product, hypothesis: pb001, skip: false}
+
+# --- Component identification ---
+# Priority-ordered; first match wins. More specific patterns first.
+component_identification:
+  rules:
+    # cnf-features-deploy: specific patterns
+    - all_of: ["losing subscription to events"]
+      result: cnf-features-deploy
+    - all_of: ["remove phc2sys", "option"]
+      result: cnf-features-deploy
+    - any_of: ["ocpbugs-49372", "ocpbugs-49373"]
+      result: cnf-features-deploy
+
+    # cnf-gotests
+    - any_of: ["ntpfailover-specific tests", "tracking issue for failures"]
+      result: cnf-gotests
+
+    # cloud-event-proxy: direct matches
+    - any_of: ["cloud event", "cloud-event-proxy"]
+      result: cloud-event-proxy
+    - all_of: ["gnss sync state"]
+      result: cloud-event-proxy
+    - all_of: ["configmap", "update"]
+      result: cloud-event-proxy
+    - all_of: ["sidecar container"]
+      result: cloud-event-proxy
+
+    # interface down branching (order matters: more specific first)
+    - all_of: ["interface down", "ptp_interfaces.go"]
+      none_of: ["ordinary clock"]
+      result: linuxptp-daemon
+    - all_of: ["interface down"]
+      none_of: ["ordinary clock"]
+      result: cloud-event-proxy
+
+    # http events using consumer branching
+    - all_of: ["http events using consumer"]
+      none_of: ["losing subscription", "/var/lib", "ptp_events"]
+      result: linuxptp-daemon
+    - all_of: ["http events using consumer"]
+      none_of: ["losing subscription", "phc2sys", "ptp4l"]
+      result: cloud-event-proxy
+
+    # linuxptp-daemon: direct keyword matches
+    - any_of: ["phc2sys", "ptp4l"]
+      result: linuxptp-daemon
+    - all_of: ["clock state", "locked"]
+      result: linuxptp-daemon
+    - all_of: ["offset threshold"]
+      result: linuxptp-daemon
+    - any_of: ["ptp_recovery.go", "ptp_events_and_metrics.go", "ptp_interfaces.go"]
+      result: linuxptp-daemon
+
+    # workload partitioning branching
+    - any_of: ["workload partitioning", "workloadpartitioning"]
+      all_of: ["workload_partitioning.go"]
+      result: cloud-event-proxy
+    - any_of: ["workload partitioning", "workloadpartitioning"]
+      result: linuxptp-daemon
+
+    - all_of: ["ocpbugs-54967"]
+      result: linuxptp-daemon
+
+    # PTP generic keywords (broadest match last)
+    - any_of: ["ptp", "linuxptp", "clock", "gnss", "offset"]
+      result: linuxptp-daemon
+
+  default: unknown
+
+# --- Cascade detection ---
+cascade_keywords:
+  - "aftereach"
+  - "beforeeach"
+  - "setup failure"
+  - "suite setup"
+
+# --- Convergence scoring ---
+# Used by arithmetic convergence computation, not by match rules.
+convergence:
+  jira_keywords: ["ocpbugs-", "cnf-"]
+  descriptive_keywords: ["phc2sys", "ptp4l", "clock", "gnss", "holdover",
+    "offset", "broken pipe", "configmap", "sidecar"]
+  version_keywords: ["4.1", "4.2", "4.3", "release-", "v4.", "ocp-"]

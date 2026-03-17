@@ -1,0 +1,47 @@
+name: rca-report
+format: markdown
+sections:
+  - type: header
+    title: "RCA Report"
+    level: 1
+
+  - type: table
+    columns: [Field, Value]
+    data: header_fields
+
+  - type: header
+    title: "Summary"
+    level: 2
+
+  - type: text
+    content: "{{ .summary_text }}"
+
+  - type: header
+    title: "Findings by Component"
+    level: 2
+
+  - type: repeat
+    items: components
+    body:
+      - type: text
+        content: "### {{ .component_title }}"
+      - type: table
+        columns: [Case, Test, Verdict, Confidence, RP Status]
+        data: cases
+      - type: text
+        content: "{{ .evidence_text }}"
+
+  - type: header
+    title: "Case Details"
+    level: 2
+
+  - type: repeat
+    items: case_details
+    body:
+      - type: text
+        content: "### {{ .case_title }}"
+      - type: table
+        columns: [Field, Value]
+        data: fields
+      - type: text
+        content: "{{ .rca_text }}"

@@ -1,0 +1,329 @@
+scorecard: rca
+description: >-
+  Principled calibration scorecard for Asterisk RCA circuit.
+  Thresholds derived from ROI analysis, not arbitrary PoC tuning.
+version: 2
+
+cost_model:
+  cases_per_batch: 30
+  cost_per_batch_usd: 1.00
+  labor_saved_per_batch_person_days: 100
+  person_day_cost_usd: 500
+
+metrics:
+  # --- Tier 1: Outcome Correctness ---
+  - id: M1
+    name: defect_type_accuracy
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.85
+    weight: 0.25
+    scorer: batch_field_match
+    params:
+      actual: actual_defect_type
+      expected: rca_defect_type
+      filter: rca_id
+    strategy: roi_based
+    rationale: "Primary output. At 0.85, 1 in ~7 wrong. Each misclassification costs ~$2,500."
+
+  - id: M2
+    name: symptom_category_accuracy
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.80
+    weight: 0.10
+    scorer: batch_field_match
+    params:
+      actual: actual_category
+      expected: expected_symptom_category
+      filter: expected_symptom_category
+    strategy: roi_based
+    rationale: "Routes to correct team. At 0.80, wrong routing is tolerable."
+
+  - id: M3
+    name: recall_hit_rate
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.65
+    weight: 0.0
+    scorer: batch_bool_rate
+    params:
+      filter_field: expect_recall_hit
+      actual_field: actual_recall_hit
+    strategy: roi_based
+    rationale: "Recall-based routing. Lowered from 0.70 — false negatives are caught by investigation."
+
+  - id: M4
+    name: recall_false_positive_rate
+    tier: outcome
+    direction: lower_is_better
+    threshold: 0.10
+    weight: 0.0
+    scorer: batch_bool_rate
+    params:
+      filter_field: expect_recall_hit
+      filter_value: false
+      actual_field: actual_recall_hit
+    strategy: fixed
+    rationale: "Safety gate. False positives waste investigation resources."
+
+  - id: M5
+    name: serial_killer_detection
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.55
+    weight: 0.05
+    scorer: batch_group_linkage
+    params:
+      group_field: rca_id
+      value_field: actual_rca_id
+      filter: rca_id
+    strategy: roi_based
+    rationale: "Advanced detection. Lowered from 0.70 — difficult with limited cross-case context."
+
+  - id: M6
+    name: skip_accuracy
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.80
+    weight: 0.0
+    scorer: batch_bool_rate
+    params:
+      filter_field: expect_skip
+      actual_field: actual_skip
+    strategy: fixed
+    rationale: "Safety gate. Correct skip decisions prevent wasted analysis."
+
+  - id: M7
+    name: cascade_detection
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.40
+    weight: 0.0
+    scorer: batch_bool_rate
+    params:
+      filter_field: expect_cascade
+      actual_field: actual_cascade
+    strategy: roi_based
+    rationale: "Advanced detection. Lowered from 0.50 — cascade recognition is genuinely hard."
+
+  - id: M8
+    name: convergence_calibration
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.35
+    weight: 0.0
+    scorer: batch_correlation
+    params:
+      x_field: actual_convergence
+      y_field: defect_type_correct_float
+      filter: [has_convergence, rca_id]
+    strategy: roi_based
+    rationale: "Health check for confidence scores. Lowered from 0.40 — Pearson r is strict."
+
+  # --- Tier 2: Investigation Quality ---
+  - id: M9
+    name: repo_selection_precision
+    tier: investigation
+    direction: higher_is_better
+    threshold: 0.65
+    weight: 0.05
+    scorer: batch_set_precision
+    params:
+      actual_field: actual_selected_repos
+      relevant_field: rca_relevant_repos
+      filter: [actual_selected_repos, rca_id]
+    strategy: roi_based
+    rationale: "Cost metric. Lowered from 0.70 — over-selecting repos costs tokens, not correctness."
+
+  - id: M10
+    name: repo_selection_recall
+    tier: investigation
+    direction: higher_is_better
+    threshold: 0.80
+    weight: 0.15
+    scorer: batch_set_recall
+    params:
+      actual_field: actual_selected_repos
+      relevant_field: rca_relevant_repos
+      filter: [rca_id, has_expected_resolve]
+    strategy: roi_based
+    rationale: "Missing the right repo is unrecoverable. Wet target: 0.85."
+
+  - id: M11
+    name: red_herring_rejection
+    tier: investigation
+    direction: higher_is_better
+    threshold: 0.70
+    weight: 0.0
+    scorer: batch_set_exclusion
+    params:
+      actual_field: actual_selected_repos
+      excluded_field: red_herring_repos
+      filter: actual_selected_repos
+    strategy: roi_based
+    rationale: "Lowered from 0.80 — selecting a red herring wastes tokens but doesn't prevent correct answer."
+
+  # --- Tier 3: Detection Quality ---
+  - id: M12
+    name: evidence_recall
+    tier: detection
+    direction: higher_is_better
+    threshold: 0.65
+    weight: 0.10
+    scorer: batch_set_recall
+    params:
+      actual_field: actual_evidence_refs
+      relevant_field: expected_evidence_refs
+      match_fn: evidence_overlap
+      aggregate: sum
+      filter: expected_evidence_refs
+    strategy: roi_based
+    rationale: "Finding planted evidence. Raised from 0.60. Foundation of explainable RCA."
+    dry_capped: true
+
+  - id: M13
+    name: evidence_precision
+    tier: detection
+    direction: higher_is_better
+    threshold: 0.45
+    weight: 0.0
+    scorer: batch_set_precision
+    params:
+      actual_field: actual_evidence_refs
+      relevant_field: expected_evidence_refs
+      match_fn: evidence_overlap
+      aggregate: sum
+      filter: actual_evidence_refs
+    strategy: roi_based
+    rationale: "Lowered from 0.50 — citing extra evidence is noise, not harm."
+    dry_capped: true
+
+  - id: M14
+    name: rca_message_relevance
+    tier: detection
+    direction: higher_is_better
+    threshold: 0.60
+    weight: 0.10
+    scorer: batch_keyword_score
+    params:
+      text_field: actual_rca_message
+      keywords_field: rca_required_keywords
+      threshold_field: rca_keyword_threshold
+      filter: [actual_rca_message, rca_id, rca_required_keywords]
+    strategy: fixed
+    rationale: "Semantic quality of RCA message. Kept at 0.60."
+
+  - id: M14b
+    name: smoking_gun_hit_rate
+    tier: detection
+    direction: higher_is_better
+    threshold: 0.30
+    weight: 0.0
+    scorer: batch_keyword_score
+    params:
+      text_field: actual_rca_message
+      keywords_field: rca_smoking_gun_words
+      hit_threshold: 0.5
+      aggregate: hit_rate
+      filter: [actual_rca_message, rca_id, rca_smoking_gun]
+    strategy: roi_based
+    rationale: "Raised from 0.00. Future M19 candidate at 0.10 weight when consistently >0.30."
+
+  - id: M15
+    name: component_identification
+    tier: detection
+    direction: higher_is_better
+    threshold: 0.75
+    weight: 0.20
+    scorer: batch_field_match
+    params:
+      actual: actual_component
+      expected: rca_component
+      fallback_text: actual_rca_message
+      fallback_value: rca_component
+      filter: rca_id
+    strategy: roi_based
+    rationale: "'Where to look' signal. Raised from 0.70. High human value."
+
+  # --- Tier 4: Efficiency ---
+  - id: M16
+    name: circuit_path_accuracy
+    tier: efficiency
+    direction: higher_is_better
+    threshold: 0.50
+    weight: 0.0
+    scorer: batch_field_match
+    params:
+      actual: actual_path
+      expected: expected_path
+    strategy: fixed
+    rationale: "Lowered from 0.60. Correct answer via suboptimal path is acceptable."
+
+  - id: M17
+    name: loop_efficiency
+    tier: efficiency
+    direction: range
+    threshold: 3.0
+    weight: 0.0
+    scorer: batch_sum_ratio
+    params:
+      numerator_field: actual_loops
+      denominator_field: expected_loops
+    strategy: fixed
+    rationale: "Range 0.3-3.0 (widened from 0.5-2.0). Loops that converge are acceptable."
+
+  - id: M18
+    name: total_prompt_tokens
+    tier: efficiency
+    direction: lower_is_better
+    threshold: 200000
+    weight: 0.0
+    scorer: batch_field_sum
+    params:
+      field: prompt_tokens_total
+      fallback_field: actual_path_length
+      fallback_multiplier: 1000
+    strategy: roi_based
+    rationale: "Budget raised 3.3x from 60K. At $0.003/1K tokens, 200K costs $0.60 — trivial vs $2,500 labor."
+
+  # --- Tier 5: Aggregate & Meta ---
+  - id: M20
+    name: run_variance
+    tier: meta
+    direction: lower_is_better
+    threshold: 0.15
+    weight: 0.0
+    strategy: fixed
+    rationale: "Consistency. Stddev of M19 across runs. Keep tight."
+
+  - id: M21
+    name: gap_precision
+    tier: meta
+    direction: higher_is_better
+    threshold: 0.0
+    weight: 0.0
+    scorer: batch_field_sum
+    params:
+      field: evidence_gap_count
+    strategy: fixed
+    rationale: "Stub — manual verification required."
+
+  - id: M22
+    name: gap_recall
+    tier: meta
+    direction: higher_is_better
+    threshold: 0.0
+    weight: 0.0
+    scorer: batch_field_sum
+    params:
+      field: wrong_with_gaps
+    strategy: fixed
+    rationale: "Stub — manual verification required."
+
+aggregate:
+  id: M19
+  name: overall_accuracy
+  formula: weighted_average
+  threshold: 0.70
+  include: [M1, M2, M5, M9, M10, M12, M14, M15]

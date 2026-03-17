@@ -1,0 +1,177 @@
+circuit: rca
+description: "Root-cause analysis circuit (F0 Recall through F6 Report)"
+handler_type: transformer
+imports:
+  - rca
+vars:
+  recall_hit: 0.80
+  recall_uncertain: 0.40
+  convergence_sufficient: 0.50
+  max_investigate_loops: 1
+  correlate_dup: 0.80
+
+nodes:
+  - name: recall
+    handler: rca.recall
+    prompt: prompts/recall/judge-similarity.md
+    output_schema: schemas/rca/F0_RECALL.yaml
+    before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy, inject.history, inject.recall-digest]
+    after: [store.recall]
+  - name: triage
+    handler: rca.triage
+    prompt: prompts/triage/classify-symptoms.md
+    output_schema: schemas/rca/F1_TRIAGE.yaml
+    before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy, inject.history]
+    after: [store.triage]
+  - name: resolve
+    handler: rca.resolve
+    prompt: prompts/resolve/select-repo.md
+    output_schema: schemas/rca/F2_RESOLVE.yaml
+    before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy]
+  - name: investigate
+    handler: rca.investigate
+    prompt: prompts/investigate/deep-rca.md
+    output_schema: schemas/rca/F3_INVESTIGATE.yaml
+    before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy]
+    after: [store.investigate]
+  - name: correlate
+    handler: rca.correlate
+    prompt: prompts/correlate/match-cases.md
+    output_schema: schemas/rca/F4_CORRELATE.yaml
+    before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy]
+    after: [store.correlate]
+  - name: review
+    handler: rca.review
+    prompt: prompts/review/present-findings.md
+    output_schema: schemas/rca/F5_REVIEW.yaml
+    before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy]
+    after: [store.review]
+  - name: report
+    handler: rca.report
+    prompt: prompts/report/regression-table.md
+    output_schema: schemas/rca/F6_REPORT.yaml
+    before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy]
+
+edges:
+  # F0 Recall
+  - id: H1
+    name: recall-hit
+    from: recall
+    to: review
+    shortcut: true
+    when: "output.match == true && output.confidence >= config.recall_hit"
+  - id: H3
+    name: recall-uncertain
+    from: recall
+    to: triage
+    when: "output.match == true && output.confidence >= config.recall_uncertain && output.confidence < config.recall_hit"
+  - id: H2
+    name: recall-miss
+    from: recall
+    to: triage
+    when: "output.match != true"
+
+  # F1 Triage
+  - id: H4
+    name: triage-skip-infra
+    from: triage
+    to: review
+    shortcut: true
+    when: 'output.symptom_category == "infra"'
+  - id: H5
+    name: triage-skip-flake
+    from: triage
+    to: review
+    shortcut: true
+    when: 'output.symptom_category == "flake"'
+  - id: H18
+    name: triage-skip-investigation
+    from: triage
+    to: review
+    shortcut: true
+    when: "output.skip_investigation == true"
+  - id: H7
+    name: triage-single-repo
+    from: triage
+    to: investigate
+    shortcut: true
+    when: "output.skip_investigation != true && len(output.candidate_repos) == 1"
+  # H7b "triage-hypothesis-repo" is a runner-level interception
+  # (calibrate/parallel.go) that deterministically resolves repos from
+  # source pack Purpose metadata when the triage hypothesis matches.
+  - id: H6
+    name: triage-investigate
+    from: triage
+    to: resolve
+    when: "output.skip_investigation != true"
+
+  # F2 Resolve
+  - id: H8
+    name: resolve-multi
+    from: resolve
+    to: investigate
+    when: "true"
+
+  # F3 Investigate
+  - id: H9
+    name: investigate-converged
+    from: investigate
+    to: correlate
+    when: "output.convergence_score >= config.convergence_sufficient"
+  - id: H10a
+    name: investigate-no-evidence-skip
+    from: investigate
+    to: correlate
+    when: "output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) == 0"
+  - id: H10
+    name: investigate-low
+    from: investigate
+    to: resolve
+    loop: true
+    when: "output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) > 0 && state.loops.investigate < config.max_investigate_loops"
+  - id: H11
+    name: investigate-exhausted
+    from: investigate
+    to: review
+    shortcut: true
+    when: "output.convergence_score < config.convergence_sufficient && state.loops.investigate >= config.max_investigate_loops"
+
+  # F4 Correlate
+  - id: H15
+    name: correlate-dup
+    from: correlate
+    to: DONE
+    when: "output.is_duplicate == true && output.confidence >= config.correlate_dup"
+  - id: H15b
+    name: correlate-proceed
+    from: correlate
+    to: review
+    when: "true"
+
+  # F5 Review
+  - id: H12
+    name: review-approve
+    from: review
+    to: report
+    when: 'output.decision == "approve"'
+  - id: H13
+    name: review-reassess
+    from: review
+    to: resolve
+    loop: true
+    when: 'output.decision == "reassess"'
+  - id: H14
+    name: review-overturn
+    from: review
+    to: report
+    when: 'output.decision == "overturn"'
+
+  # F6 Report
+  - id: FALLBACK
+    name: report-done
+    from: report
+    to: DONE
+    when: "true"
+
+start: recall
+done: DONE

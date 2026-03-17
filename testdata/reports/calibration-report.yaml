@@ -1,0 +1,75 @@
+name: calibration-report
+format: terminal
+sections:
+  - type: header
+    title: "Asterisk Calibration Report"
+    level: 1
+
+  - type: text
+    content: "Scenario: {{ .scenario_name }}  Transformer: {{ .transformer }}  Cases: {{ .total_cases }}"
+
+  - type: header
+    title: "Outcome"
+    level: 2
+
+  - type: table
+    columns: [ID, Metric, Value, Detail, Pass, Threshold]
+    data: outcome_metrics
+
+  - type: header
+    title: "Investigation"
+    level: 2
+
+  - type: table
+    columns: [ID, Metric, Value, Detail, Pass, Threshold]
+    data: investigation_metrics
+
+  - type: header
+    title: "Detection"
+    level: 2
+
+  - type: table
+    columns: [ID, Metric, Value, Detail, Pass, Threshold]
+    data: detection_metrics
+
+  - type: header
+    title: "Efficiency"
+    level: 2
+
+  - type: table
+    columns: [ID, Metric, Value, Detail, Pass, Threshold]
+    data: efficiency_metrics
+
+  - type: header
+    title: "Meta"
+    level: 2
+
+  - type: table
+    columns: [ID, Metric, Value, Detail, Pass, Threshold]
+    data: meta_metrics
+
+  - type: text
+    content: "RESULT: {{ .result_text }}"
+
+  - type: header
+    title: "Dataset Health"
+    level: 2
+
+  - type: text
+    content: "Verified cases (scored): {{ .verified_count }}  Candidate cases (tracked): {{ .candidate_count }}"
+
+  - type: table
+    columns: [Case, RCA, Jira, Reason]
+    data: dataset_candidates
+
+  - type: header
+    title: "Per-case breakdown"
+    level: 2
+
+  - type: table
+    columns: [Case, Test, Ver/Job, Defect, DT, RP, Comp, Path, PathOK]
+    data: case_results
+
+  - type: table
+    columns: [Case, Verdict, Gaps, Categories]
+    data: evidence_gaps

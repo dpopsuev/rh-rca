@@ -1,0 +1,38 @@
+{
+  "trees": [
+    {
+      "repo": "ptp-operator",
+      "branch": "main",
+      "entries": [
+        {"path": "pkg/daemon/daemon.go", "type": "file"},
+        {"path": "pkg/daemon/config.go", "type": "file"},
+        {"path": "test/e2e/ptp_test.go", "type": "file"}
+      ]
+    }
+  ],
+  "search_results": [
+    {
+      "repo": "ptp-operator",
+      "file": "pkg/daemon/daemon.go",
+      "line": 142,
+      "snippet": "func (d *Daemon) syncClocks() error {",
+      "score": 0.92
+    },
+    {
+      "repo": "ptp-operator",
+      "file": "pkg/daemon/config.go",
+      "line": 58,
+      "snippet": "func parseConfig(data []byte) (*Config, error) {",
+      "score": 0.85
+    }
+  ],
+  "files": [
+    {
+      "repo": "ptp-operator",
+      "path": "pkg/daemon/daemon.go",
+      "content": "package daemon\n\nfunc (d *Daemon) syncClocks() error {\n\t// PTP sync implementation\n\treturn nil\n}\n",
+      "truncated": false
+    }
+  ],
+  "truncated": false
+}

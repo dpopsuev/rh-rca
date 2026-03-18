@@ -4,6 +4,7 @@ namespace: rca
 version: "1.0.0"
 description: "Red Hat Root Cause Analysis — CI failure investigation circuit"
 factory: NewServer
+resolver: SchematicResolver
 provides:
   transformers: [context-builder, prompt-filler]
   extractors: [recall, triage, resolve, investigate, correlate, review, report]

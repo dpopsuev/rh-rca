@@ -36,9 +36,10 @@ type Server struct {
 	StateDir        string // writable root for runtime artifacts (calibrate, investigations)
 	ReaderFactory   rca.SourceReaderFactory
 	StoreFactory    rca.StoreFactory
-	DSRReader toolkit.SourceReader
-	StepSchemas     []fwmcp.StepSchema
-	DomainFS        fs.FS
+	DSRReader            toolkit.SourceReader
+	SubCircuitResolvers  map[string]framework.AssetResolver
+	StepSchemas          []fwmcp.StepSchema
+	DomainFS             fs.FS
 
 	Observer SessionObserver
 }
@@ -56,6 +57,14 @@ func WithSourceReader(f rca.SourceReaderFactory) ServerOption {
 // access during RCA investigation steps.
 func WithDSRReader(r toolkit.SourceReader) ServerOption {
 	return func(s *Server) { s.DSRReader = r }
+}
+
+// WithSubCircuitResolvers injects asset resolvers for sub-circuit
+// overlay resolution. Keyed by circuit name (e.g., "harvester", "dsr").
+// The consumer (via fold) provides these — the schematic never imports
+// another schematic directly (SOLID: Dependency Inversion).
+func WithSubCircuitResolvers(r map[string]framework.AssetResolver) ServerOption {
+	return func(s *Server) { s.SubCircuitResolvers = r }
 }
 
 // WithStepSchemas overrides the default RCA step schemas.
@@ -147,6 +156,12 @@ func (s *Server) readDomainCircuit() []byte {
 	}
 	data, _ := fs.ReadFile(s.DomainFS, "circuits/rca.yaml")
 	return data
+}
+
+// loadSubCircuits loads sub-circuit definitions from domain FS using the
+// framework's LoadSubCircuitsFromFS utility with consumer-injected resolvers.
+func (s *Server) loadSubCircuits() map[string]*framework.CircuitDef {
+	return framework.LoadSubCircuitsFromFS(s.DomainFS, s.SubCircuitResolvers)
 }
 
 func (s *Server) buildConfig() fwmcp.CircuitConfig {
@@ -424,6 +439,9 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		ReportTemplate:  calReportTemplate,
 	}
 
+	// Load sub-circuit definitions (e.g., harvester/dsr) from domain FS.
+	subCircuits := s.loadSubCircuits()
+
 	runFn := func(ctx context.Context) (any, error) {
 		genReport, err := cal.Run(ctx, cal.HarnessConfig{
 			Loader:         adapter,
@@ -431,6 +449,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 			Renderer:       adapter,
 			CircuitDef:     circuitDef,
 			ScoreCard:      sc,
+			Shared:         framework.GraphRegistries{Circuits: subCircuits},
 			Contract:       cal.ContractFromDef(circuitDef.Calibration),
 			Resolution:     resolution,
 			PortStubs:      portStubs,

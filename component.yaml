@@ -31,8 +31,3 @@ requires:
       option: WithRunDiscoverer
       description: Discovers available CI runs and their failures
       optional: true
-    - name: dsr
-      type: dsr.Reader
-      option: WithDSRReader
-      description: Data source retriever (git repos, web docs)
-      schematic: rh-dsr

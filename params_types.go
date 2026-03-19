@@ -123,7 +123,7 @@ type URLParams struct {
 	SourceItem      string
 }
 
-// AlwaysReadSource holds the content of a harvester source that is always
+// AlwaysReadSource holds the content of a GND source that is always
 // loaded regardless of routing rules (ReadPolicy == ReadAlways).
 type AlwaysReadSource struct {
 	Name    string

@@ -4,7 +4,6 @@ go 1.24.2
 
 require (
 	github.com/dpopsuev/origami v0.0.0
-	github.com/dpopsuev/rh-dsr v0.0.0
 	github.com/google/go-cmp v0.7.0
 	github.com/modelcontextprotocol/go-sdk v1.3.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -55,7 +54,4 @@ require (
 	nhooyr.io/websocket v1.8.17 // indirect
 )
 
-replace (
-	github.com/dpopsuev/origami => ../origami
-	github.com/dpopsuev/rh-dsr => ../rh-dsr
-)
+replace github.com/dpopsuev/origami => ../origami

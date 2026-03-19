@@ -18,8 +18,9 @@ import (
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/dpopsuev/origami/domainfs"
-	mcpserver "github.com/dpopsuev/rh-rca/mcpconfig"
 	"github.com/dpopsuev/origami/subprocess"
+	rp "github.com/dpopsuev/rh-rca/connectors/rp"
+	mcpserver "github.com/dpopsuev/rh-rca/mcpconfig"
 )
 
 type sessionToolCaller struct {
@@ -49,7 +50,7 @@ func main() {
 	port := flag.Int("port", 9200, "HTTP port for the RCA MCP server")
 	healthz := flag.Bool("healthz", false, "probe /healthz and exit")
 	domainEndpoint := flag.String("domain-endpoint", envOr("DOMAIN_ENDPOINT", ""), "Domain data MCP endpoint (required)")
-	_ = flag.String("harvester-endpoint", envOr("HARVESTER_ENDPOINT", ""), "Harvester MCP endpoint (deprecated, unused)")
+	mediatorEndpoint := flag.String("mediator-endpoint", envOr("MEDIATOR_ENDPOINT", ""), "Mediator MCP endpoint for sub-circuit delegation")
 	productName := flag.String("product", envOr("PRODUCT_NAME", "asterisk"), "Product name for state directory")
 	flag.Parse()
 
@@ -76,6 +77,11 @@ func main() {
 
 	opts := []mcpserver.ServerOption{
 		mcpserver.WithDomainFS(remoteFS),
+		mcpserver.WithSourceReader(rp.NewSourceReader),
+	}
+	if *mediatorEndpoint != "" {
+		opts = append(opts, mcpserver.WithMediatorEndpoint(*mediatorEndpoint))
+		log.Printf("mediator endpoint: %s", *mediatorEndpoint)
 	}
 
 	srv := mcpserver.NewServer(*productName, opts...)

@@ -10,7 +10,6 @@ import (
 	framework "github.com/dpopsuev/origami"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
-	"github.com/dpopsuev/origami/schematics/toolkit"
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/rh-rca/store"
 )
@@ -47,7 +46,6 @@ type RCACalibrationAdapter struct {
 	Thresholds      Thresholds
 	ScoreCard       *cal.ScoreCard
 	TokenTracker    dispatch.TokenTracker
-	DSRReader toolkit.SourceReader
 	ReportTemplate  []byte // calibration-report.yaml data
 
 	// Internal state — populated by Load(), consumed by Collect().
@@ -192,7 +190,6 @@ func (a *RCACalibrationAdapter) Load(_ context.Context) ([]framework.BatchCase, 
 				Envelope:        env,
 				Catalog:         catalog,
 				CaseDir:         caseDir,
-				DSRReader: a.DSRReader,
 			}),
 		}
 

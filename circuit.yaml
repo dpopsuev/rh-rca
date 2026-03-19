@@ -39,6 +39,7 @@ nodes:
     handler: recall
     prompt: prompts/recall/judge-similarity.md
     output_schema: schemas/rca/F0_RECALL.yaml
+    before: [inject.envelope, inject.failure, inject.history, inject.recall-digest, inject.taxonomy]
     after: [store.recall]
     edges:
       - name: recall-hit
@@ -58,6 +59,7 @@ nodes:
     handler: triage
     prompt: prompts/triage/classify-symptoms.md
     output_schema: schemas/rca/F1_TRIAGE.yaml
+    before: [inject.envelope, inject.failure, inject.sources]
     after: [store.triage]
     edges:
       - name: triage-skip-infra
@@ -86,6 +88,7 @@ nodes:
     handler: resolve
     prompt: prompts/resolve/select-repo.md
     output_schema: schemas/rca/F2_RESOLVE.yaml
+    before: [inject.envelope, inject.failure, inject.sources]
     edges:
       - name: resolve-multi
         to: investigate
@@ -97,6 +100,7 @@ nodes:
     handler: investigate
     prompt: prompts/investigate/deep-rca.md
     output_schema: schemas/rca/F3_INVESTIGATE.yaml
+    before: [inject.failure]
     after: [store.investigate]
     edges:
       - name: investigate-converged
@@ -120,6 +124,7 @@ nodes:
     handler: correlate
     prompt: prompts/correlate/match-cases.md
     output_schema: schemas/rca/F4_CORRELATE.yaml
+    before: [inject.history]
     after: [store.correlate]
     edges:
       - name: correlate-dup
@@ -135,6 +140,7 @@ nodes:
     handler: review
     prompt: prompts/review/present-findings.md
     output_schema: schemas/rca/F5_REVIEW.yaml
+    before: [inject.failure]
     after: [store.review]
     edges:
       - name: review-approve
@@ -154,6 +160,7 @@ nodes:
     handler: report
     prompt: prompts/report/regression-table.md
     output_schema: schemas/rca/F6_REPORT.yaml
+    before: [inject.failure, inject.taxonomy]
     edges:
       - name: report-done
         to: DONE

@@ -27,7 +27,7 @@ func Analyze(src EnvelopeSource, launchID int, artifactPath string) error {
 	return AnalyzeWithCatalog(src, launchID, artifactPath, nil)
 }
 
-// AnalyzeWithCatalog is like Analyze but accepts an optional harvester source catalog.
+// AnalyzeWithCatalog is like Analyze but accepts an optional GND source catalog.
 // When non-nil, catalog is available for downstream (e.g. prompts).
 func AnalyzeWithCatalog(src EnvelopeSource, launchID int, artifactPath string, cat toolkit.SourceCatalog) error {
 	env, err := src.Get(launchID)

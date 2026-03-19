@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,8 +15,6 @@ import (
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
 	fwmcp "github.com/dpopsuev/origami/mcp"
-	dsr "github.com/dpopsuev/rh-dsr"
-	"github.com/dpopsuev/origami/schematics/toolkit"
 	"github.com/dpopsuev/rh-rca"
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/rh-rca/scenarios"
@@ -36,8 +35,8 @@ type Server struct {
 	StateDir        string // writable root for runtime artifacts (calibrate, investigations)
 	ReaderFactory   rca.SourceReaderFactory
 	StoreFactory    rca.StoreFactory
-	DSRReader            toolkit.SourceReader
 	SubCircuitResolvers  map[string]framework.AssetResolver
+	MediatorEndpoint     string
 	StepSchemas          []fwmcp.StepSchema
 	DomainFS             fs.FS
 
@@ -53,18 +52,19 @@ func WithSourceReader(f rca.SourceReaderFactory) ServerOption {
 	return func(s *Server) { s.ReaderFactory = f }
 }
 
-// WithDSRReader injects a SourceReader for code and doc
-// access during RCA investigation steps.
-func WithDSRReader(r toolkit.SourceReader) ServerOption {
-	return func(s *Server) { s.DSRReader = r }
-}
-
 // WithSubCircuitResolvers injects asset resolvers for sub-circuit
-// overlay resolution. Keyed by circuit name (e.g., "harvester", "dsr").
+// overlay resolution. Keyed by circuit name (e.g., "gnd", "dsr").
 // The consumer (via fold) provides these — the schematic never imports
 // another schematic directly (SOLID: Dependency Inversion).
 func WithSubCircuitResolvers(r map[string]framework.AssetResolver) ServerOption {
 	return func(s *Server) { s.SubCircuitResolvers = r }
+}
+
+// WithMediatorEndpoint sets the Origami Mediator MCP endpoint for runtime
+// sub-circuit delegation. When set, handler_type: circuit nodes that can't
+// resolve locally will delegate to the mediator via MCP.
+func WithMediatorEndpoint(ep string) ServerOption {
+	return func(s *Server) { s.MediatorEndpoint = ep }
 }
 
 // WithStepSchemas overrides the default RCA step schemas.
@@ -205,7 +205,15 @@ func (s *Server) buildConfig() fwmcp.CircuitConfig {
 			}
 			var reportTemplate []byte
 			if s.DomainFS != nil {
-				reportTemplate, _ = fs.ReadFile(s.DomainFS, "reports/calibration-report.yaml")
+				var err error
+				reportTemplate, err = fs.ReadFile(s.DomainFS, "reports/rca-report.yaml")
+				if err != nil {
+					slog.Warn("report template not found, using default",
+						"path", "reports/rca-report.yaml",
+						"error", err,
+					)
+					reportTemplate = nil
+				}
 			}
 			formatted, err := rca.RenderCalibrationReport(report, reportTemplate)
 			if err != nil {
@@ -306,21 +314,15 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		return nil, fwmcp.SessionMeta{}, err
 	}
 
-	dsrReader := s.DSRReader
-
 	switch mode {
 	case rca.ModeOffline:
 		if s.DomainFS != nil {
 			offlineFS, fsErr := fs.Sub(s.DomainFS, "offline")
 			if fsErr != nil {
-				return nil, fwmcp.SessionMeta{}, fmt.Errorf("offline bundle not found in domain FS (expected 'offline/' directory with rp/ and harvester/ sub-dirs): %w", fsErr)
+				return nil, fwmcp.SessionMeta{}, fmt.Errorf("offline bundle not found in domain FS (expected 'offline/' directory with rp/ sub-dir): %w", fsErr)
 			}
 			if err := scenarios.ResolveOfflineRP(offlineFS, scenario); err != nil {
 				return nil, fwmcp.SessionMeta{}, fmt.Errorf("resolve offline RP data (scenario=%s, mode=offline): %w", scenarioName, err)
-			}
-			harvesterFS, kErr := fs.Sub(offlineFS, "harvester")
-			if kErr == nil {
-				dsrReader = dsr.NewRouter(dsr.WithOfflineFS(harvesterFS))
 			}
 		}
 	default:
@@ -425,7 +427,14 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 
 	var calReportTemplate []byte
 	if s.DomainFS != nil {
-		calReportTemplate, _ = fs.ReadFile(s.DomainFS, "reports/calibration-report.yaml")
+		var readErr error
+		calReportTemplate, readErr = fs.ReadFile(s.DomainFS, "reports/rca-report.yaml")
+		if readErr != nil {
+			slog.Warn("report template not found, using default",
+				"path", "reports/rca-report.yaml",
+				"error", readErr,
+			)
+		}
 	}
 	adapter := &rca.RCACalibrationAdapter{
 		Scenario:        scenario,
@@ -435,11 +444,10 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		Thresholds:      rca.DefaultThresholds(),
 		ScoreCard:       sc,
 		TokenTracker:    tokenTracker,
-		DSRReader: dsrReader,
 		ReportTemplate:  calReportTemplate,
 	}
 
-	// Load sub-circuit definitions (e.g., harvester/dsr) from domain FS.
+	// Load sub-circuit definitions (e.g., gnd/dsr) from domain FS.
 	subCircuits := s.loadSubCircuits()
 
 	runFn := func(ctx context.Context) (any, error) {
@@ -449,7 +457,11 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 			Renderer:       adapter,
 			CircuitDef:     circuitDef,
 			ScoreCard:      sc,
-			Shared:         framework.GraphRegistries{Circuits: subCircuits},
+			Shared: framework.GraphRegistries{
+				Circuits:         subCircuits,
+				MediatorEndpoint: s.MediatorEndpoint,
+			},
+			PromptRelayer: &dispatch.MuxRelayer{Disp: disp},
 			Contract:       cal.ContractFromDef(circuitDef.Calibration),
 			Resolution:     resolution,
 			PortStubs:      portStubs,

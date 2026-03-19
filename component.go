@@ -17,7 +17,6 @@ type ComponentConfig struct {
 	Envelope        *rcatype.Envelope
 	Catalog         toolkit.SourceCatalog
 	CaseDir         string
-	DSRReader toolkit.SourceReader
 	CircuitDef      *framework.CircuitDef
 }
 
@@ -126,7 +125,6 @@ func buildHooks(cfg ComponentConfig) framework.HookRegistry {
 		Envelope:        cfg.Envelope,
 		Catalog:         cfg.Catalog,
 		CaseDir:         cfg.CaseDir,
-		DSRReader: cfg.DSRReader,
 	})
 	for name, h := range inject {
 		reg[name] = h

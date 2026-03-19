@@ -278,7 +278,7 @@ func TestTemplateParams_AllFieldsUsed(t *testing.T) {
 
 		"History.PriorRCAs.DaysSinceResolved": "available but not surfaced in current prompt templates",
 
-		"Code.Trees":               "populated by Harvester subgraph but not yet rendered in prompts",
+		"Code.Trees":               "populated by GND subgraph but not yet rendered in prompts",
 		"Code.Trees.Repo":          "sub-field of Code.Trees",
 		"Code.Trees.Branch":        "sub-field of Code.Trees",
 		"Code.Trees.Entries":       "sub-field of Code.Trees",

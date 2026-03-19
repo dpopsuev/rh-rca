@@ -2,9 +2,9 @@ package rca
 
 import (
 	"context"
+	"encoding/json"
 
 	framework "github.com/dpopsuev/origami"
-	dsr "github.com/dpopsuev/rh-dsr"
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/rh-rca/store"
 	"github.com/dpopsuev/origami/schematics/toolkit"
@@ -29,7 +29,6 @@ type InjectHookOpts struct {
 	Envelope        *rcatype.Envelope
 	Catalog         toolkit.SourceCatalog
 	CaseDir         string
-	DSRReader toolkit.SourceReader
 }
 
 // InjectHooks creates a HookRegistry with the inject.* before-hooks
@@ -45,8 +44,7 @@ func InjectHooks(st store.Store, caseData *store.Case, env *rcatype.Envelope, ca
 	})
 }
 
-// InjectHooksWithOpts creates inject hooks using the full options struct,
-// including optional DSRReader for code injection hooks.
+// InjectHooksWithOpts creates inject hooks using the full options struct.
 func InjectHooksWithOpts(opts InjectHookOpts) framework.HookRegistry {
 	reg := framework.HookRegistry{}
 
@@ -273,7 +271,7 @@ func extractSearchKeywords(walkerCtx map[string]any) []string {
 
 // newInjectCodeKeywordsHook creates a before-hook that extracts search
 // keywords from the walker context and writes them to
-// "dsr.search_keywords" so the Harvester sub-circuit can use them.
+// "dsr.search_keywords" so the GND sub-circuit can use them.
 func newInjectCodeKeywordsHook() framework.Hook {
 	return toolkit.NewContextInjector("inject.code-keywords", func(walkerCtx map[string]any) {
 		keywords := extractSearchKeywords(walkerCtx)
@@ -283,7 +281,7 @@ func newInjectCodeKeywordsHook() framework.Hook {
 	})
 }
 
-// newBridgeCodeContextHook creates an after-hook that reads the Harvester
+// newBridgeCodeContextHook creates an after-hook that reads the GND
 // circuit's output from delegate artifacts and converts it to *CodeParams
 // for consumption by downstream RCA nodes.
 func newBridgeCodeContextHook() framework.Hook {
@@ -304,8 +302,19 @@ func newBridgeCodeContextHook() framework.Hook {
 			return nil
 		}
 
-		cc, ok := readArt.Raw().(*dsr.CodeContext)
-		if !ok || cc == nil {
+		// Decode the raw artifact via JSON roundtrip to avoid importing
+		// the GND package. The raw value may be a concrete struct (local
+		// delegate) or a map[string]any (mediator delegation).
+		raw := readArt.Raw()
+		if raw == nil {
+			return nil
+		}
+		data, err := json.Marshal(raw)
+		if err != nil {
+			return nil
+		}
+		var cc codeContextWire
+		if err := json.Unmarshal(data, &cc); err != nil {
 			return nil
 		}
 
@@ -340,4 +349,30 @@ func newBridgeCodeContextHook() framework.Hook {
 		code.Truncated = cc.Truncated
 		return nil
 	})
+}
+
+// codeContextWire mirrors the GND CodeContext fields consumed by the bridge
+// hook. Decoupled via JSON roundtrip so rh-rca never imports rh-gnd.
+type codeContextWire struct {
+	Trees         []struct {
+		Repo    string `json:"repo"`
+		Branch  string `json:"branch"`
+		Entries []struct {
+			Path  string `json:"path"`
+			IsDir bool   `json:"is_dir"`
+		} `json:"entries"`
+	} `json:"trees"`
+	SearchResults []struct {
+		Repo    string `json:"repo"`
+		File    string `json:"file"`
+		Line    int    `json:"line"`
+		Snippet string `json:"snippet"`
+	} `json:"search_results"`
+	Files []struct {
+		Repo      string `json:"repo"`
+		Path      string `json:"path"`
+		Content   string `json:"content"`
+		Truncated bool   `json:"truncated"`
+	} `json:"files"`
+	Truncated bool `json:"truncated"`
 }

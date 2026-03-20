@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"strings"
 
 	framework "github.com/dpopsuev/origami"
@@ -179,8 +180,8 @@ func applyContractFields(r *CaseResult, fields map[string]any) {
 	}
 }
 
-// scoreCaseResult sets the DefectTypeCorrect, PathCorrect, and ComponentCorrect
-// flags on a CaseResult by comparing against ground truth.
+// scoreCaseResult sets the CategoryCorrect, DefectTypeCorrect, PathCorrect,
+// and ComponentCorrect flags on a CaseResult by comparing against ground truth.
 func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 	var gt *GroundTruthCase
 	for j := range scenario.Cases {
@@ -195,6 +196,11 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 
 	// Path accuracy
 	r.PathCorrect = cal.PathsEqual(r.ActualPath, gt.ExpectedPath)
+
+	// Category accuracy
+	if gt.ExpectedTriage != nil {
+		r.CategoryCorrect = (r.ActualCategory == gt.ExpectedTriage.SymptomCategory)
+	}
 
 	// Defect type and component — look up ground truth RCA
 	if gt.RCAID != "" {
@@ -440,9 +446,25 @@ func parseJSON[T any](data json.RawMessage) (*T, error) {
 	cleaned := cleanJSON(data)
 	var result T
 	if err := json.Unmarshal(cleaned, &result); err != nil {
+		// Fallback: sanitize lone backslashes and retry.
+		sanitized := sanitizeBackslashes(cleaned)
+		if !bytes.Equal(sanitized, cleaned) {
+			if err2 := json.Unmarshal(sanitized, &result); err2 == nil {
+				return &result, nil
+			}
+		}
 		return nil, err
 	}
 	return &result, nil
+}
+
+// loneBackslashRe matches a backslash NOT followed by a valid JSON escape
+// character (", \, /, b, f, n, r, t, or uXXXX).
+var loneBackslashRe = regexp.MustCompile(`\\([^"\\/bfnrtu])`)
+
+// sanitizeBackslashes removes lone backslashes that break json.Unmarshal.
+func sanitizeBackslashes(data []byte) []byte {
+	return loneBackslashRe.ReplaceAll(data, []byte("$1"))
 }
 
 // cleanJSON strips markdown code fences and leading/trailing whitespace from

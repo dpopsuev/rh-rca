@@ -471,6 +471,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 			Runs:           1,
 			Parallel:       parallel,
 			OnCaseComplete: adapter.OnCaseComplete(),
+			Observer:       params.Observer,
 		})
 		if err != nil {
 			return nil, err

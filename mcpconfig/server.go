@@ -182,6 +182,7 @@ func (s *Server) buildConfig() fwmcp.CircuitConfig {
 	cfg := fwmcp.CircuitConfig{
 		Name:        s.ProductName,
 		Version:     "dev",
+		StateDir:    s.StateDir,
 		StepSchemas: schemas,
 		WorkerPreamble: fmt.Sprintf("You are a %s calibration worker.", s.ProductName),
 		DefaultGetNextStepTimeout: int(DefaultGetNextStepTimeout / time.Millisecond),

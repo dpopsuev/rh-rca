@@ -1160,9 +1160,6 @@ defs:
 	if schemas[0].Name != "F0_RECALL" {
 		t.Errorf("name = %q, want F0_RECALL", schemas[0].Name)
 	}
-	if len(schemas[0].Fields) != 2 {
-		t.Errorf("expected 2 fields, got %d", len(schemas[0].Fields))
-	}
 	if len(schemas[0].Defs) != 2 {
 		t.Errorf("expected 2 defs, got %d", len(schemas[0].Defs))
 	}
@@ -1197,12 +1194,6 @@ fields:
 	s := schemas[0]
 	if s.Name != "F0_RECALL" {
 		t.Errorf("name = %q, want F0_RECALL (from metadata)", s.Name)
-	}
-	if len(s.Fields) != 2 {
-		t.Errorf("expected 2 flat fields, got %d", len(s.Fields))
-	}
-	if s.Fields["match"] != "bool" {
-		t.Errorf("fields[match] = %q, want bool", s.Fields["match"])
 	}
 	if len(s.Defs) != 2 {
 		t.Errorf("expected 2 derived defs, got %d", len(s.Defs))

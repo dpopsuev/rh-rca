@@ -1,5 +1,6 @@
 circuit: rca
 description: "Root-cause analysis circuit (F0 Recall through F6 Report)"
+handler_type: transformer
 imports:
   - rca
 vars:
@@ -11,36 +12,36 @@ vars:
 
 nodes:
   - name: recall
-    transformer: rca.recall
+    handler: rca.recall
     prompt: prompts/recall/judge-similarity.md
     before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy, inject.history, inject.recall-digest]
     after: [store.recall]
   - name: triage
-    transformer: rca.triage
+    handler: rca.triage
     prompt: prompts/triage/classify-symptoms.md
     before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy, inject.history]
     after: [store.triage]
   - name: resolve
-    transformer: rca.resolve
+    handler: rca.resolve
     prompt: prompts/resolve/select-repo.md
     before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy]
   - name: investigate
-    transformer: rca.investigate
+    handler: rca.investigate
     prompt: prompts/investigate/deep-rca.md
     before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy]
     after: [store.investigate]
   - name: correlate
-    transformer: rca.correlate
+    handler: rca.correlate
     prompt: prompts/correlate/match-cases.md
     before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy]
     after: [store.correlate]
   - name: review
-    transformer: rca.review
+    handler: rca.review
     prompt: prompts/review/present-findings.md
     before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy]
     after: [store.review]
   - name: report
-    transformer: rca.report
+    handler: rca.report
     prompt: prompts/report/regression-table.md
     before: [inject.envelope, inject.failure, inject.sources, inject.prior, inject.taxonomy]
 

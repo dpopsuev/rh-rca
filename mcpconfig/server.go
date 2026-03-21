@@ -521,15 +521,13 @@ func (f *stepSchemaFile) resolveSchema() fwmcp.StepSchema {
 	}
 
 	if isStructured {
-		s.Fields = make(map[string]string, len(f.Fields))
 		for name, raw := range f.Fields {
 			m, ok := raw.(map[string]any)
 			if !ok {
 				continue
 			}
-			typ, _ := m["type"].(string)
-			s.Fields[name] = typ
 			if len(f.Defs) == 0 {
+				typ, _ := m["type"].(string)
 				req, _ := m["required"].(bool)
 				desc, _ := m["desc"].(string)
 				s.Defs = append(s.Defs, fwmcp.FieldDef{
@@ -540,10 +538,14 @@ func (f *stepSchemaFile) resolveSchema() fwmcp.StepSchema {
 				})
 			}
 		}
-	} else {
-		s.Fields = make(map[string]string, len(f.Fields))
+	} else if len(f.Defs) == 0 {
+		// Legacy flat fields: convert to Defs
 		for name, v := range f.Fields {
-			s.Fields[name], _ = v.(string)
+			typ, _ := v.(string)
+			s.Defs = append(s.Defs, fwmcp.FieldDef{
+				Name: name,
+				Type: typ,
+			})
 		}
 	}
 
@@ -623,8 +625,7 @@ func LoadStepSchemas(fsys fs.FS) ([]fwmcp.StepSchema, error) {
 func rcaStepSchemas() []fwmcp.StepSchema {
 	return []fwmcp.StepSchema{
 		{
-			Name:   "recall",
-			Fields: map[string]string{"match": "bool", "confidence": "float", "reasoning": "string"},
+			Name: "recall",
 			Defs: []fwmcp.FieldDef{
 				{Name: "match", Type: "bool", Required: true},
 				{Name: "confidence", Type: "float", Required: true},
@@ -633,11 +634,6 @@ func rcaStepSchemas() []fwmcp.StepSchema {
 		},
 		{
 			Name: "triage",
-			Fields: map[string]string{
-				"symptom_category": "string", "severity": "string",
-				"defect_type_hypothesis": "string", "candidate_repos[]": "string[]",
-				"skip_investigation": "bool", "cascade_suspected": "bool",
-			},
 			Defs: []fwmcp.FieldDef{
 				{Name: "symptom_category", Type: "string", Required: true},
 				{Name: "severity", Type: "string", Required: true},
@@ -648,18 +644,13 @@ func rcaStepSchemas() []fwmcp.StepSchema {
 			},
 		},
 		{
-			Name:   "resolve",
-			Fields: map[string]string{"selected_repos[]": "{name, reason}"},
+			Name: "resolve",
 			Defs: []fwmcp.FieldDef{
 				{Name: "selected_repos", Type: "array", Required: true},
 			},
 		},
 		{
 			Name: "investigate",
-			Fields: map[string]string{
-				"rca_message": "string", "defect_type": "string", "component": "string",
-				"convergence_score": "float", "evidence_refs[]": "string[]",
-			},
 			Defs: []fwmcp.FieldDef{
 				{Name: "rca_message", Type: "string", Required: true},
 				{Name: "defect_type", Type: "string", Required: true},
@@ -669,23 +660,20 @@ func rcaStepSchemas() []fwmcp.StepSchema {
 			},
 		},
 		{
-			Name:   "correlate",
-			Fields: map[string]string{"is_duplicate": "bool", "confidence": "float"},
+			Name: "correlate",
 			Defs: []fwmcp.FieldDef{
 				{Name: "is_duplicate", Type: "bool", Required: true},
 				{Name: "confidence", Type: "float", Required: true},
 			},
 		},
 		{
-			Name:   "review",
-			Fields: map[string]string{"decision": "approve|reassess|overturn"},
+			Name: "review",
 			Defs: []fwmcp.FieldDef{
 				{Name: "decision", Type: "string", Required: true},
 			},
 		},
 		{
-			Name:   "report",
-			Fields: map[string]string{"defect_type": "string", "case_id": "string", "summary": "string"},
+			Name: "report",
 			Defs: []fwmcp.FieldDef{
 				{Name: "defect_type", Type: "string", Required: true},
 				{Name: "case_id", Type: "string", Required: true},

@@ -1,4 +1,4 @@
-package scenarios
+package rca
 
 import (
 	"encoding/json"
@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dpopsuev/rh-rca"
 	"github.com/dpopsuev/rh-rca/rcatype"
 
 	"gopkg.in/yaml.v3"
@@ -16,13 +15,13 @@ import (
 
 // LoadScenario reads a scenario by name from the given filesystem.
 // Name is derived from the filename; a bare name: field in the YAML is optional.
-func LoadScenario(fsys fs.FS, name string) (*rca.Scenario, error) {
+func LoadScenario(fsys fs.FS, name string) (*Scenario, error) {
 	data, err := fs.ReadFile(fsys, name+".yaml")
 	if err != nil {
 		return nil, fmt.Errorf("scenario %q not found (available: %s): %w",
 			name, strings.Join(ListScenarios(fsys), ", "), err)
 	}
-	var s rca.Scenario
+	var s Scenario
 	if err := yaml.Unmarshal(data, &s); err != nil {
 		return nil, fmt.Errorf("parse scenario %q: %w", name, err)
 	}
@@ -36,11 +35,11 @@ func LoadScenario(fsys fs.FS, name string) (*rca.Scenario, error) {
 // ResolveOfflineRP loads pre-staged RP envelopes from the offline bundle FS
 // and populates case ErrorMessage/LogSnippet fields for cases that have a
 // SourceLaunchID. This replaces live RP fetching in offline mode.
-func ResolveOfflineRP(offlineFS fs.FS, scenario *rca.Scenario) error {
+func ResolveOfflineRP(offlineFS fs.FS, scenario *Scenario) error {
 	logger := slog.Default().With("component", "offline-rp")
 	cache := make(map[int]*rcatype.Envelope)
 
-	resolve := func(cases []rca.GroundTruthCase) error {
+	resolve := func(cases []GroundTruthCase) error {
 		for i := range cases {
 			c := &cases[i]
 			if c.SourceLaunchID <= 0 {
@@ -88,7 +87,7 @@ func ResolveOfflineRP(offlineFS fs.FS, scenario *rca.Scenario) error {
 	return resolve(scenario.Candidates)
 }
 
-func matchOfflineItem(env *rcatype.Envelope, c *rca.GroundTruthCase) *rcatype.FailureItem {
+func matchOfflineItem(env *rcatype.Envelope, c *GroundTruthCase) *rcatype.FailureItem {
 	if c.TestID != "" {
 		for i := range env.FailureList {
 			if env.FailureList[i].ID == c.TestID {

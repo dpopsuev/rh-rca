@@ -1,4 +1,4 @@
-package scenarios_test
+package rca_test
 
 import (
 	"io/fs"
@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/dpopsuev/rh-rca/scenarios"
+	"github.com/dpopsuev/rh-rca"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -19,9 +19,9 @@ func scenarioTestFS() fs.FS {
 
 func TestLoadScenario_AllValid(t *testing.T) {
 	fsys := scenarioTestFS()
-	for _, name := range scenarios.ListScenarios(fsys) {
+	for _, name := range rca.ListScenarios(fsys) {
 		t.Run(name, func(t *testing.T) {
-			s, err := scenarios.LoadScenario(fsys, name)
+			s, err := rca.LoadScenario(fsys, name)
 			if err != nil {
 				t.Fatalf("LoadScenario(%q): %v", name, err)
 			}
@@ -39,7 +39,7 @@ func TestLoadScenario_AllValid(t *testing.T) {
 }
 
 func TestListScenarios(t *testing.T) {
-	names := scenarios.ListScenarios(scenarioTestFS())
+	names := rca.ListScenarios(scenarioTestFS())
 	if len(names) != 3 {
 		t.Fatalf("expected 3 scenarios, got %d: %v", len(names), names)
 	}
@@ -50,7 +50,7 @@ func TestListScenarios(t *testing.T) {
 }
 
 func TestLoadScenario_NotFound(t *testing.T) {
-	_, err := scenarios.LoadScenario(scenarioTestFS(), "nonexistent")
+	_, err := rca.LoadScenario(scenarioTestFS(), "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent scenario")
 	}

@@ -1,4 +1,4 @@
-package mcpconfig
+package rca
 
 import (
 	"github.com/dpopsuev/origami/circuit"

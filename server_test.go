@@ -1,4 +1,4 @@
-package mcpconfig_test
+package rca_test
 
 import (
 	"context"
@@ -41,7 +41,7 @@ func projectRoot(t *testing.T) string {
 	t.Helper()
 	tmp := t.TempDir()
 	_, f, _, _ := runtime.Caller(0)
-	src := filepath.Join(filepath.Dir(f), "testdata")
+	src := filepath.Join(filepath.Dir(f), "testdata_mcp")
 
 	seedPaths := []string{
 		"scorecards/rca.yaml",
@@ -65,7 +65,7 @@ func projectRoot(t *testing.T) string {
 func testDomainFS(t *testing.T) fs.FS {
 	t.Helper()
 	_, f, _, _ := runtime.Caller(0)
-	return os.DirFS(filepath.Join(filepath.Dir(f), "testdata"))
+	return os.DirFS(filepath.Join(filepath.Dir(f), "testdata_mcp"))
 }
 
 func newTestServer(t *testing.T) *mcpserver.Server {

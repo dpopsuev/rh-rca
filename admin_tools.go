@@ -1,4 +1,4 @@
-package mcpconfig
+package rca
 
 import (
 	"context"
@@ -11,8 +11,6 @@ import (
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	fwmcp "github.com/dpopsuev/origami/mcp"
-	"github.com/dpopsuev/rh-rca"
-	"github.com/dpopsuev/rh-rca/scenarios"
 )
 
 // RegisterAdminTools registers data management and investigation tools
@@ -55,7 +53,7 @@ type AdminToolOpts struct {
 	DatasetDir   string
 	CandidateDir string
 	BasePath     string
-	DefectWriter rca.DefectWriter
+	DefectWriter DefectWriter
 	Consume      ConsumeFunc
 }
 
@@ -103,8 +101,8 @@ type statusHistEntry struct {
 
 func handleStatus(opts AdminToolOpts) func(context.Context, *sdkmcp.CallToolRequest, statusInput) (*sdkmcp.CallToolResult, statusOutput, error) {
 	return func(_ context.Context, _ *sdkmcp.CallToolRequest, input statusInput) (*sdkmcp.CallToolResult, statusOutput, error) {
-		caseDir := rca.CaseDir(opts.basePath(), input.SuiteID, input.CaseID)
-		state, err := rca.LoadCheckpointState(caseDir, input.CaseID)
+		caseDir := CaseDir(opts.basePath(), input.SuiteID, input.CaseID)
+		state, err := LoadCheckpointState(caseDir, input.CaseID)
 		if err != nil {
 			return nil, statusOutput{}, fmt.Errorf("load state: %w", err)
 		}
@@ -309,7 +307,7 @@ func handleGTStatus(opts AdminToolOpts) func(context.Context, *sdkmcp.CallToolRe
 		var out gtStatusOutput
 		out.Total = len(scenario.Cases)
 		for _, c := range scenario.Cases {
-			var rcaRec *rca.GroundTruthRCA
+			var rcaRec *GroundTruthRCA
 			for i := range scenario.RCAs {
 				if scenario.RCAs[i].ID == c.RCAID {
 					rcaRec = &scenario.RCAs[i]
@@ -371,7 +369,7 @@ type gtImportOutput struct {
 
 func handleGTImport(opts AdminToolOpts) func(context.Context, *sdkmcp.CallToolRequest, gtImportInput) (*sdkmcp.CallToolResult, gtImportOutput, error) {
 	return func(_ context.Context, _ *sdkmcp.CallToolRequest, input gtImportInput) (*sdkmcp.CallToolResult, gtImportOutput, error) {
-		scenario, err := scenarios.LoadScenario(nil, input.Scenario)
+		scenario, err := LoadScenario(nil, input.Scenario)
 		if err != nil {
 			return nil, gtImportOutput{}, fmt.Errorf("load scenario %q: %w", input.Scenario, err)
 		}
@@ -435,12 +433,12 @@ type pushOutput struct {
 
 func handlePush(opts AdminToolOpts) func(context.Context, *sdkmcp.CallToolRequest, pushInput) (*sdkmcp.CallToolResult, pushOutput, error) {
 	return func(_ context.Context, _ *sdkmcp.CallToolRequest, input pushInput) (*sdkmcp.CallToolResult, pushOutput, error) {
-		var verdict rca.RCAVerdict
+		var verdict RCAVerdict
 		if err := json.Unmarshal([]byte(input.ArtifactJSON), &verdict); err != nil {
 			return nil, pushOutput{}, fmt.Errorf("parse artifact: %w", err)
 		}
 
-		var writer rca.DefectWriter = rca.DefaultDefectWriter{}
+		var writer DefectWriter = DefaultDefectWriter{}
 		if opts.DefectWriter != nil {
 			writer = opts.DefectWriter
 		}
@@ -560,19 +558,19 @@ func (fs *fileStore) list(_ context.Context) ([]string, error) {
 	return names, nil
 }
 
-func (fs *fileStore) load(_ context.Context, name string) (*rca.Scenario, error) {
+func (fs *fileStore) load(_ context.Context, name string) (*Scenario, error) {
 	data, err := os.ReadFile(filepath.Join(fs.dir, name+".json"))
 	if err != nil {
 		return nil, fmt.Errorf("load dataset %q: %w", name, err)
 	}
-	var s rca.Scenario
+	var s Scenario
 	if err := json.Unmarshal(data, &s); err != nil {
 		return nil, fmt.Errorf("parse dataset %q: %w", name, err)
 	}
 	return &s, nil
 }
 
-func (fs *fileStore) save(_ context.Context, s *rca.Scenario) error {
+func (fs *fileStore) save(_ context.Context, s *Scenario) error {
 	if err := os.MkdirAll(fs.dir, 0o755); err != nil {
 		return err
 	}
@@ -582,4 +580,5 @@ func (fs *fileStore) save(_ context.Context, s *rca.Scenario) error {
 	}
 	return os.WriteFile(filepath.Join(fs.dir, s.Name+".json"), data, 0o644)
 }
+
 

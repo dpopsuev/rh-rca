@@ -20,7 +20,7 @@ import (
 	"github.com/dpopsuev/origami/domainfs"
 	"github.com/dpopsuev/origami/subprocess"
 	rp "github.com/dpopsuev/rh-rca/connectors/rp"
-	mcpserver "github.com/dpopsuev/rh-rca/mcpconfig"
+	rca "github.com/dpopsuev/rh-rca"
 )
 
 type sessionToolCaller struct {
@@ -75,16 +75,16 @@ func main() {
 		WithTimeout(10 * time.Second)
 	log.Printf("connected to domain server at %s", *domainEndpoint)
 
-	opts := []mcpserver.ServerOption{
-		mcpserver.WithDomainFS(remoteFS),
-		mcpserver.WithSourceReader(rp.NewSourceReader),
+	opts := []rca.ServerOption{
+		rca.WithDomainFS(remoteFS),
+		rca.WithSourceReader(rp.NewSourceReader),
 	}
 	if *mediatorEndpoint != "" {
-		opts = append(opts, mcpserver.WithMediatorEndpoint(*mediatorEndpoint))
+		opts = append(opts, rca.WithMediatorEndpoint(*mediatorEndpoint))
 		log.Printf("mediator endpoint: %s", *mediatorEndpoint)
 	}
 
-	srv := mcpserver.NewServer(*productName, opts...)
+	srv := rca.NewServer(*productName, opts...)
 	defer srv.Shutdown()
 
 	mcpHandler := sdkmcp.NewStreamableHTTPHandler(

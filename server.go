@@ -1,4 +1,4 @@
-package mcpconfig
+package rca
 
 import (
 	"context"
@@ -17,9 +17,7 @@ import (
 	"github.com/dpopsuev/origami/agentport"
 	"github.com/dpopsuev/origami/dispatch"
 	fwmcp "github.com/dpopsuev/origami/mcp"
-	"github.com/dpopsuev/rh-rca"
 	"github.com/dpopsuev/rh-rca/rcatype"
-	"github.com/dpopsuev/rh-rca/scenarios"
 	"github.com/dpopsuev/rh-rca/store"
 	"gopkg.in/yaml.v3"
 )
@@ -35,8 +33,8 @@ type Server struct {
 	ProductName     string
 	ProjectRoot     string // source tree root for reading domain data (scorecard, datasets)
 	StateDir        string // writable root for runtime artifacts (calibrate, investigations)
-	ReaderFactory   rca.SourceReaderFactory
-	StoreFactory    rca.StoreFactory
+	ReaderFactory   SourceReaderFactory
+	StoreFactory    StoreFactory
 	SubCircuitResolvers  map[string]circuit.AssetResolver
 	MediatorEndpoint     string
 	StepSchemas          []fwmcp.StepSchema
@@ -50,7 +48,7 @@ type ServerOption func(*Server)
 
 // WithSourceReader injects a factory for creating SourceReaders from
 // connection parameters provided in MCP start_circuit requests.
-func WithSourceReader(f rca.SourceReaderFactory) ServerOption {
+func WithSourceReader(f SourceReaderFactory) ServerOption {
 	return func(s *Server) { s.ReaderFactory = f }
 }
 
@@ -119,7 +117,7 @@ func NewServer(productName string, opts ...ServerOption) *Server {
 
 	if s.DomainFS != nil {
 		if vocabData, err := fs.ReadFile(s.DomainFS, "vocabulary.yaml"); err == nil {
-			rca.InitVocab(vocabData)
+			InitVocab(vocabData)
 		}
 	}
 
@@ -202,7 +200,7 @@ func (s *Server) buildConfig() fwmcp.CircuitConfig {
 			return s.createSession(ctx, params, disp, bus)
 		},
 		FormatReport: func(result any) (string, any, error) {
-			report, ok := result.(*rca.CalibrationReport)
+			report, ok := result.(*CalibrationReport)
 			if !ok {
 				return "", nil, fmt.Errorf("unexpected result type: %T", result)
 			}
@@ -218,7 +216,7 @@ func (s *Server) buildConfig() fwmcp.CircuitConfig {
 					reportTemplate = nil
 				}
 			}
-			formatted, err := rca.RenderCalibrationReport(report, reportTemplate)
+			formatted, err := RenderCalibrationReport(report, reportTemplate)
 			if err != nil {
 				return "", nil, fmt.Errorf("render calibration report: %w", err)
 			}
@@ -233,7 +231,7 @@ func (s *Server) buildConfig() fwmcp.CircuitConfig {
 
 func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, disp *dispatch.MuxDispatcher, bus agentport.Bus) (fwmcp.RunFunc, fwmcp.SessionMeta, error) {
 	if s.Observer != nil {
-		def, err := rca.LoadCircuitDef(s.readDomainCircuit(), rca.DefaultThresholds())
+		def, err := LoadCircuitDef(s.readDomainCircuit(), DefaultThresholds())
 		if err == nil {
 			s.Observer.OnSessionCreate(def, bus)
 		}
@@ -250,7 +248,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 	rpBaseURL, _ := extra["rp_base_url"].(string)
 	rpProject, _ := extra["rp_project"].(string)
 	modeStr, _ := extra["mode"].(string)
-	mode := rca.ParseCalibrationMode(modeStr)
+	mode := ParseCalibrationMode(modeStr)
 
 	var resolution cal.Resolution
 	var portStubs cal.PortStubs
@@ -291,19 +289,19 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 	if s.DomainFS != nil {
 		scenarioFS, _ = fs.Sub(s.DomainFS, "scenarios")
 	}
-	scenario, err := scenarios.LoadScenario(scenarioFS, scenarioName)
+	scenario, err := LoadScenario(scenarioFS, scenarioName)
 	if err != nil {
 		return nil, fwmcp.SessionMeta{}, err
 	}
 
 	switch mode {
-	case rca.ModeOffline:
+	case ModeOffline:
 		if s.DomainFS != nil {
 			offlineFS, fsErr := fs.Sub(s.DomainFS, "offline")
 			if fsErr != nil {
 				return nil, fwmcp.SessionMeta{}, fmt.Errorf("offline bundle not found in domain FS (expected 'offline/' directory with rp/ sub-dir): %w", fsErr)
 			}
-			if err := scenarios.ResolveOfflineRP(offlineFS, scenario); err != nil {
+			if err := ResolveOfflineRP(offlineFS, scenario); err != nil {
 				return nil, fwmcp.SessionMeta{}, fmt.Errorf("resolve offline RP data (scenario=%s, mode=offline): %w", scenarioName, err)
 			}
 		}
@@ -331,7 +329,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 				return nil, fwmcp.SessionMeta{}, fmt.Errorf("create source reader: %w", err)
 			}
 			rpFetcher = source.EnvelopeFetcher()
-			if err := rca.ResolveRPCases(rpFetcher, scenario); err != nil {
+			if err := ResolveRPCases(rpFetcher, scenario); err != nil {
 				return nil, fwmcp.SessionMeta{}, fmt.Errorf("resolve RP-sourced cases: %w", err)
 			}
 		}
@@ -347,11 +345,11 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 
 	var comps []*engine.Component
 	var transformerLabel string
-	var idMapper rca.IDMappable
+	var idMapper IDMappable
 	switch transformerName {
 	case "stub":
-		stub := rca.NewStubTransformer(scenario)
-		comps = []*engine.Component{rca.TransformerComponent(stub)}
+		stub := NewStubTransformer(scenario)
+		comps = []*engine.Component{TransformerComponent(stub)}
 		transformerLabel = "stub"
 		idMapper = stub
 	case "basic":
@@ -373,15 +371,15 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		if s.DomainFS != nil {
 			heuristicsData, _ = fs.ReadFile(s.DomainFS, "heuristics.yaml")
 		}
-		comps = []*engine.Component{rca.HeuristicComponent(basicSt, repoNames, heuristicsData)}
+		comps = []*engine.Component{HeuristicComponent(basicSt, repoNames, heuristicsData)}
 		transformerLabel = "basic"
 	default:
-		t := rca.NewRCATransformer(
+		t := NewRCATransformer(
 			tracked,
 			promptFS,
-			rca.WithRCABasePath(basePath),
+			WithRCABasePath(basePath),
 		)
-		comps = []*engine.Component{rca.TransformerComponent(t)}
+		comps = []*engine.Component{TransformerComponent(t)}
 		transformerLabel = "rca"
 	}
 
@@ -394,7 +392,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		return nil, fwmcp.SessionMeta{}, fmt.Errorf("create calibrate dir: %w", err)
 	}
 
-	circuitDef, err := rca.LoadCircuitDef(s.readDomainCircuit(), rca.DefaultThresholds())
+	circuitDef, err := LoadCircuitDef(s.readDomainCircuit(), DefaultThresholds())
 	if err != nil {
 		return nil, fwmcp.SessionMeta{}, fmt.Errorf("load circuit def for scorecard: %w", err)
 	}
@@ -418,12 +416,12 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 			)
 		}
 	}
-	adapter := &rca.RCACalibrationAdapter{
+	adapter := &RCACalibrationAdapter{
 		Scenario:        scenario,
 		Components:      comps,
 		IDMapper:        idMapper,
 		BasePath:        basePath,
-		Thresholds:      rca.DefaultThresholds(),
+		Thresholds:      DefaultThresholds(),
 		ScoreCard:       sc,
 		TokenTracker:    tokenTracker,
 		ReportTemplate:  calReportTemplate,
@@ -459,7 +457,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		}
 
 		report := adapter.RCAReport(genReport)
-		rca.ApplyDryCaps(&report.Metrics, scenario.DryCappedMetrics)
+		ApplyDryCaps(&report.Metrics, scenario.DryCappedMetrics)
 		if m20def := sc.FindDef("M20"); m20def != nil {
 			report.Metrics.Metrics = append(report.Metrics.Metrics,
 				m20def.ToMetric(0, "single run"))

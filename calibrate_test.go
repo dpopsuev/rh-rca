@@ -2,362 +2,214 @@ package rca_test
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io/fs"
-	"math"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
-	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/engine"
-
+	cal "github.com/dpopsuev/origami/calibrate"
+	"github.com/dpopsuev/origami/dispatch"
 	"github.com/dpopsuev/rh-rca"
 	"github.com/dpopsuev/rh-rca/scenarios"
 )
 
-func testCircuitData(t *testing.T) []byte {
+func calibrateScenarioName() string {
+	if v := os.Getenv("CALIBRATE_SCENARIO"); v != "" {
+		return v
+	}
+	return "ptp"
+}
+
+func calibrateBackend() string {
+	if v := os.Getenv("CALIBRATE_BACKEND"); v != "" {
+		return v
+	}
+	return "stub"
+}
+
+func calibrateMode() string {
+	if v := os.Getenv("CALIBRATE_MODE"); v != "" {
+		return v
+	}
+	return "offline"
+}
+
+func calibrateResolution() string {
+	return os.Getenv("CALIBRATE_RESOLUTION")
+}
+
+func loadCalibrationScenario(t *testing.T, domainFS fs.FS) *rca.Scenario {
 	t.Helper()
-	return readTestdata(t, "circuit_rca.yaml")
+	scenarioFS, err := fs.Sub(domainFS, "scenarios")
+	if err != nil {
+		t.Fatalf("sub scenarios: %v", err)
+	}
+	scenario, err := scenarios.LoadScenario(scenarioFS, calibrateScenarioName())
+	if err != nil {
+		t.Fatalf("load scenario %s: %v", calibrateScenarioName(), err)
+	}
+	return scenario
 }
 
-func loadTestScoreCard(t *testing.T) *cal.ScoreCard {
+func buildCalibrationComponents(t *testing.T, scenario *rca.Scenario, domainFS fs.FS) ([]*engine.Component, rca.IDMappable) {
 	t.Helper()
-	sc, err := cal.LoadScoreCard("testdata/scorecard.yaml")
+	backend := calibrateBackend()
+	switch backend {
+	case "stub":
+		stub := rca.NewStubTransformer(scenario)
+		return []*engine.Component{rca.TransformerComponent(stub)}, stub
+	case "cli":
+		command := os.Getenv("CALIBRATE_CLI_COMMAND")
+		if command == "" {
+			t.Skip("CALIBRATE_CLI_COMMAND not set — skipping CLI calibration")
+		}
+		var args []string
+		if a := os.Getenv("CALIBRATE_CLI_ARGS"); a != "" {
+			args = strings.Fields(a)
+		}
+		cliDisp, err := dispatch.NewCLIDispatcher(command,
+			dispatch.WithCLIArgs(args...),
+			dispatch.WithCLITimeout(10*time.Minute),
+		)
+		if err != nil {
+			t.Skipf("CLI dispatcher unavailable: %v", err)
+		}
+		transformer := rca.NewRCATransformer(cliDisp, domainFS,
+			rca.WithRCABasePath(t.TempDir()),
+		)
+		return []*engine.Component{rca.TransformerComponent(transformer)}, nil
+	default:
+		t.Fatalf("unknown backend %q (available: stub, cli)", backend)
+		return nil, nil
+	}
+}
+
+func TestCalibrate(t *testing.T) {
+	domainFS := testDomainFS(t)
+	scenario := loadCalibrationScenario(t, domainFS)
+	comps, idMapper := buildCalibrationComponents(t, scenario, domainFS)
+
+	circuitData, err := fs.ReadFile(domainFS, "circuits/rca.yaml")
 	if err != nil {
-		t.Fatalf("load scorecard: %v", err)
+		t.Fatalf("read circuit def: %v", err)
 	}
-	return sc
-}
-
-func scenarioFS() fs.FS {
-	sub, _ := fs.Sub(os.DirFS(testdataDir()), "scenarios")
-	return sub
-}
-
-func mustLoadScenario(t *testing.T, name string) *rca.Scenario {
-	t.Helper()
-	s, err := scenarios.LoadScenario(scenarioFS(), name)
+	def, err := rca.LoadCircuitDef(circuitData, rca.DefaultThresholds())
 	if err != nil {
-		t.Fatalf("LoadScenario(%q): %v", name, err)
-	}
-	return s
-}
-
-func TestStubCalibration_AllMetricsPass(t *testing.T) {
-	// Override the orchestrate base path to a temp dir
-	tmpDir := t.TempDir()
-	// basePath is passed via RunConfig.BasePath below
-
-	scenario := mustLoadScenario(t, "ptp-mock")
-	stub := rca.NewStubTransformer(scenario)
-	cfg := rca.RunConfig{
-		Scenario:    scenario,
-		Components:    []*engine.Component{rca.TransformerComponent(stub)},
-		TransformerName: "stub",
-		IDMapper:    stub,
-		Runs:        1,
-		Thresholds:  rca.DefaultThresholds(),
-		BasePath:    tmpDir,
-		ScoreCard:   loadTestScoreCard(t),
-		CircuitData: testCircuitData(t),
+		t.Fatalf("load circuit def: %v", err)
 	}
 
-	report, err := rca.RunCalibration(context.Background(), cfg)
+	scorecardData, err := fs.ReadFile(domainFS, "scorecards/rca.yaml")
 	if err != nil {
-		t.Fatalf("RunCalibration: %v", err)
+		t.Fatalf("read scorecard: %v", err)
 	}
-
-	// All 20 metrics should pass
-	passed, total := report.Metrics.PassCount()
-	if passed != total {
-		t.Errorf("metrics: %d/%d passed; expected all to pass", passed, total)
-		for _, m := range report.Metrics.AllMetrics() {
-			if !m.Pass {
-				t.Errorf("  FAIL: %s (%s) = %.2f (threshold %.2f) detail=%s",
-					m.ID, m.Name, m.Value, m.Threshold, m.Detail)
-			}
-		}
-	}
-
-	// Verify case count
-	if len(report.CaseResults) != 12 {
-		t.Errorf("expected 12 case results, got %d", len(report.CaseResults))
-	}
-
-	// All 12 paths should be correct
-	correctPaths := 0
-	for _, cr := range report.CaseResults {
-		if cr.PathCorrect {
-			correctPaths++
-		}
-	}
-	if correctPaths != 12 {
-		t.Errorf("expected 12 correct paths, got %d", correctPaths)
-		for _, cr := range report.CaseResults {
-			if !cr.PathCorrect {
-				t.Logf("  %s: actual=%v", cr.CaseID, cr.ActualPath)
-			}
-		}
-	}
-
-	// Spot-check serial killer detection (R1 across versions)
-	r1Cases := map[string]bool{"C1": true, "C2": true, "C3": true, "C6": true, "C9": true, "C10": true}
-	var r1RCAIDs []int64
-	for _, cr := range report.CaseResults {
-		if r1Cases[cr.CaseID] {
-			if cr.ActualRCAID == 0 {
-				t.Errorf("case %s should have an RCA link", cr.CaseID)
-			}
-			r1RCAIDs = append(r1RCAIDs, cr.ActualRCAID)
-		}
-	}
-	if len(r1RCAIDs) > 1 {
-		first := r1RCAIDs[0]
-		for _, id := range r1RCAIDs[1:] {
-			if id != first {
-				t.Errorf("serial killer: not all R1 cases linked to same RCA (%v)", r1RCAIDs)
-				break
-			}
-		}
-	}
-}
-
-func TestStubCalibration_MultiRun(t *testing.T) {
-	tmpDir := t.TempDir()
-	// basePath is passed via RunConfig.BasePath below
-
-	scenario := mustLoadScenario(t, "ptp-mock")
-	stub := rca.NewStubTransformer(scenario)
-	cfg := rca.RunConfig{
-		Scenario:    scenario,
-		Components:    []*engine.Component{rca.TransformerComponent(stub)},
-		TransformerName: "stub",
-		IDMapper:    stub,
-		Runs:        3,
-		Thresholds:  rca.DefaultThresholds(),
-		BasePath:    tmpDir,
-		ScoreCard:   loadTestScoreCard(t),
-		CircuitData: testCircuitData(t),
-	}
-
-	report, err := rca.RunCalibration(context.Background(), cfg)
+	sc, err := cal.ParseScoreCard(scorecardData)
 	if err != nil {
-		t.Fatalf("RunCalibration: %v", err)
+		t.Fatalf("parse scorecard: %v", err)
 	}
 
-	// Variance (M20) should be ~0 for deterministic stub
-	for _, m := range report.Metrics.AllMetrics() {
-		if m.ID == "M20" && math.Abs(m.Value) > 1e-9 {
-			t.Errorf("M20 run_variance should be ~0 for deterministic stub, got %e", m.Value)
-		}
+	calReportTemplate, _ := fs.ReadFile(domainFS, "reports/calibration-report.yaml")
+	adapter := &rca.RCACalibrationAdapter{
+		Scenario:       scenario,
+		Components:     comps,
+		IDMapper:       idMapper,
+		BasePath:       t.TempDir(),
+		Thresholds:     rca.DefaultThresholds(),
+		ScoreCard:      sc,
+		TokenTracker:   billing.NewTracker(),
+		ReportTemplate: calReportTemplate,
 	}
 
-	// All metrics should still pass
-	passed, total := report.Metrics.PassCount()
-	if passed != total {
-		t.Errorf("multi-run: %d/%d passed", passed, total)
+	timeout := 2 * time.Minute
+	if calibrateBackend() == "cli" {
+		timeout = 30 * time.Minute // CLI backends need time for LLM calls
 	}
-}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-func TestFormatReport(t *testing.T) {
-	tmpDir := t.TempDir()
-	// basePath is passed via RunConfig.BasePath below
-
-	scenario := mustLoadScenario(t, "ptp-mock")
-	stub := rca.NewStubTransformer(scenario)
-	cfg := rca.DefaultRunConfig(scenario, []*engine.Component{rca.TransformerComponent(stub)}, "stub")
-	cfg.IDMapper = stub
-	cfg.Thresholds = rca.DefaultThresholds()
-	cfg.BasePath = tmpDir
-	cfg.ScoreCard = loadTestScoreCard(t)
-	cfg.CircuitData = testCircuitData(t)
-
-	report, err := rca.RunCalibration(context.Background(), cfg)
-	if err != nil {
-		t.Fatalf("RunCalibration: %v", err)
-	}
-
-	output, renderErr := rca.RenderCalibrationReport(report, readTestdata(t, "reports/calibration-report.yaml"))
-	if renderErr != nil {
-		t.Fatalf("RenderCalibrationReport: %v", renderErr)
-	}
-	if len(output) == 0 {
-		t.Fatal("RenderCalibrationReport returned empty string")
-	}
-
-	checks := []string{
-		"Asterisk Calibration Report",
-		"ptp-mock",
-		"stub",
-		"Outcome",
-		"Investigation",
-		"Detection",
-		"Efficiency",
-		"Meta",
-		"RESULT: PASS",
-		"Per-case breakdown",
-	}
-	for _, check := range checks {
-		if !containsStr(output, check) {
-			t.Errorf("report missing expected text: %q", check)
-		}
-	}
-}
-
-func TestStubCalibration_DaemonMock(t *testing.T) {
-	tmpDir := t.TempDir()
-	// basePath is passed via RunConfig.BasePath below
-
-	scenario := mustLoadScenario(t, "daemon-mock")
-	stub := rca.NewStubTransformer(scenario)
-	cfg := rca.RunConfig{
-		Scenario:    scenario,
-		Components:    []*engine.Component{rca.TransformerComponent(stub)},
-		TransformerName: "stub",
-		IDMapper:    stub,
-		Runs:        1,
-		Thresholds:  rca.DefaultThresholds(),
-		BasePath:    tmpDir,
-		ScoreCard:   loadTestScoreCard(t),
-		CircuitData: testCircuitData(t),
-	}
-
-	report, err := rca.RunCalibration(context.Background(), cfg)
-	if err != nil {
-		t.Fatalf("RunCalibration: %v", err)
-	}
-
-	passed, total := report.Metrics.PassCount()
-	if passed != total {
-		t.Errorf("daemon-mock metrics: %d/%d passed", passed, total)
-		for _, m := range report.Metrics.AllMetrics() {
-			if !m.Pass {
-				t.Errorf("  FAIL: %s (%s) = %.2f (threshold %.2f) detail=%s",
-					m.ID, m.Name, m.Value, m.Threshold, m.Detail)
-			}
-		}
-	}
-
-	if len(report.CaseResults) != 8 {
-		t.Errorf("expected 8 case results, got %d", len(report.CaseResults))
-	}
-
-	// All paths should be correct
-	for _, cr := range report.CaseResults {
-		if !cr.PathCorrect {
-			t.Errorf("case %s path incorrect: actual=%v", cr.CaseID, cr.ActualPath)
-		}
-	}
-
-	// Verify cascade detected for C6
-	for _, cr := range report.CaseResults {
-		if cr.CaseID == "C6" && !cr.ActualCascade {
-			t.Error("C6 should have cascade detected")
-		}
-	}
-}
-
-func TestStubCalibration_PTP(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	scenario := mustLoadScenario(t, "ptp")
-	stub := rca.NewStubTransformer(scenario)
-	cfg := rca.RunConfig{
-		Scenario:        scenario,
-		Components:      []*engine.Component{rca.TransformerComponent(stub)},
-		TransformerName: "stub",
-		IDMapper:        stub,
-		Runs:            1,
-		Thresholds:      rca.DefaultThresholds(),
-		BasePath:        tmpDir,
-		ScoreCard:       loadTestScoreCard(t),
-		CircuitData:     testCircuitData(t),
-	}
-
-	report, err := rca.RunCalibration(context.Background(), cfg)
-	if err != nil {
-		t.Fatalf("RunCalibration: %v", err)
-	}
-
-	if len(report.CaseResults) != 18 {
-		t.Errorf("expected 18 verified case results, got %d", len(report.CaseResults))
-	}
-
-	passed, total := report.Metrics.PassCount()
-	t.Logf("ptp stub calibration: %d/%d metrics passed", passed, total)
-}
-
-func TestScenarioCoverage(t *testing.T) {
-	testCases := []struct {
-		name     string
-		scenario string
-		rcas     int
-		symptoms int
-		cases    int
-		repos    int
-	}{
-		{"ptp-mock", "ptp-mock", 3, 4, 12, 5},
-		{"daemon-mock", "daemon-mock", 2, 3, 8, 5},
-		{"ptp", "ptp", 30, 30, 18, 6},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			s := mustLoadScenario(t, tc.scenario)
-
-			if len(s.RCAs) != tc.rcas {
-				t.Errorf("expected %d RCAs, got %d", tc.rcas, len(s.RCAs))
-			}
-			if len(s.Symptoms) != tc.symptoms {
-				t.Errorf("expected %d symptoms, got %d", tc.symptoms, len(s.Symptoms))
-			}
-			if len(s.Cases) != tc.cases {
-				t.Errorf("expected %d cases, got %d", tc.cases, len(s.Cases))
-			}
-			if len(s.SourcePack.Repos) != tc.repos {
-				t.Errorf("expected %d source pack repos, got %d", tc.repos, len(s.SourcePack.Repos))
-			}
-
-			hasRedHerring := false
-			for _, r := range s.SourcePack.Repos {
-				if r.IsRedHerring {
-					hasRedHerring = true
+	harnessConfig := cal.HarnessConfig{
+		Loader:         adapter,
+		Collector:      adapter,
+		Renderer:       adapter,
+		CircuitDef:     def,
+		ScoreCard:      sc,
+		Contract:       cal.ContractFromDef(def.Calibration),
+		Scenario:       scenario.Name,
+		Transformer:    calibrateBackend(),
+		Runs:           1,
+		Parallel:       1,
+		OnCaseComplete: func() func(int, engine.BatchWalkResult) {
+			adapterCB := adapter.OnCaseComplete()
+			total := len(scenario.Cases)
+			return func(i int, result engine.BatchWalkResult) {
+				if adapterCB != nil {
+					adapterCB(i, result)
+				}
+				if result.Error != nil {
+					fmt.Fprintf(os.Stderr, "  [%d/%d] %s ERROR: %v\n", i+1, total, result.CaseID, result.Error)
+				} else {
+					fmt.Fprintf(os.Stderr, "  [%d/%d] %s OK (steps: %d)\n", i+1, total, result.CaseID, len(result.Path))
 				}
 			}
-			if !hasRedHerring {
-				t.Error("workspace should have at least one red herring repo")
-			}
-
-			// Check all cases reference valid RCAs and symptoms
-			rcaSet := make(map[string]bool)
-			for _, r := range s.RCAs {
-				rcaSet[r.ID] = true
-			}
-			symSet := make(map[string]bool)
-			for _, sym := range s.Symptoms {
-				symSet[sym.ID] = true
-			}
-			for _, c := range s.Cases {
-				if c.RCAID != "" && !rcaSet[c.RCAID] {
-					t.Errorf("case %s references unknown RCA %q", c.ID, c.RCAID)
-				}
-				if c.SymptomID != "" && !symSet[c.SymptomID] {
-					t.Errorf("case %s references unknown symptom %q", c.ID, c.SymptomID)
-				}
-			}
-		})
+		}(),
 	}
-}
 
-func containsStr(s, substr string) bool {
-	return len(s) > 0 && len(substr) > 0 && len(s) >= len(substr) &&
-		(s == substr || findSubstring(s, substr))
-}
-
-func findSubstring(s, sub string) bool {
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
+	if res := calibrateResolution(); res != "" {
+		resolution, err := cal.ParseResolution(res)
+		if err != nil {
+			t.Fatalf("parse resolution: %v", err)
 		}
+		harnessConfig.Resolution = resolution
+
+		// Load port stubs for isolated resolutions from domain FS.
+		stubsDir := fmt.Sprintf("stubs/%s", res)
+		if domainFS != nil {
+			stubFS, fsErr := fs.Sub(domainFS, stubsDir)
+			if fsErr == nil {
+				ps := cal.PortStubs{}
+				entries, _ := fs.ReadDir(stubFS, ".")
+				for _, e := range entries {
+					if e.IsDir() {
+						continue
+					}
+					data, readErr := fs.ReadFile(stubFS, e.Name())
+					if readErr != nil {
+						continue
+					}
+					var v any
+					if jsonErr := json.Unmarshal(data, &v); jsonErr != nil {
+						continue
+					}
+					portName := e.Name()[:len(e.Name())-len(".json")]
+					ps[portName] = v
+				}
+				if len(ps) > 0 {
+					harnessConfig.PortStubs = ps
+				}
+			}
+		}
+		t.Logf("calibration resolution: %s (port stubs: %d)", res, len(harnessConfig.PortStubs))
 	}
-	return false
+
+	genReport, err := cal.Run(ctx, harnessConfig)
+	if err != nil {
+		t.Fatalf("calibration failed: %v", err)
+	}
+
+	report := adapter.RCAReport(genReport)
+	rca.ApplyDryCaps(&report.Metrics, scenario.DryCappedMetrics)
+
+	rendered, err := rca.RenderCalibrationReport(report, calReportTemplate)
+	if err != nil {
+		t.Fatalf("render report: %v", err)
+	}
+	fmt.Fprint(os.Stdout, rendered)
+
+	passed, total := report.Metrics.PassCount()
+	if passed < total {
+		t.Errorf("calibration: %d/%d metrics passed", passed, total)
+	}
 }

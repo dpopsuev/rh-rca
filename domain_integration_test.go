@@ -1,4 +1,4 @@
-package mcpconfig_test
+package rca_test
 
 import (
 	"context"

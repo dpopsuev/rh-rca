@@ -1,6 +1,6 @@
 module github.com/dpopsuev/rh-rca
 
-go 1.24.2
+go 1.25.7
 
 require (
 	github.com/dpopsuev/origami v0.2.0
@@ -20,6 +20,8 @@ require (
 	github.com/clipperhouse/displaywidth v0.9.0 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.5.0 // indirect
+	github.com/coder/websocket v1.8.14 // indirect
+	github.com/dpopsuev/bugle v0.0.0-00010101000000-000000000000 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/expr-lang/expr v1.17.8 // indirect
@@ -51,7 +53,8 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.46.1 // indirect
-	nhooyr.io/websocket v1.8.17 // indirect
 )
 
 replace github.com/dpopsuev/origami => ../origami
+
+replace github.com/dpopsuev/bugle => ../bugle

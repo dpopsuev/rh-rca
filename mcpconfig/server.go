@@ -15,6 +15,8 @@ import (
 	"github.com/dpopsuev/origami/engine"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
+	"github.com/dpopsuev/bugle/signal"
+	"github.com/dpopsuev/bugle/billing"
 	fwmcp "github.com/dpopsuev/origami/mcp"
 	"github.com/dpopsuev/rh-rca"
 	"github.com/dpopsuev/rh-rca/rcatype"
@@ -197,7 +199,7 @@ func (s *Server) buildConfig() fwmcp.CircuitConfig {
 			{Name: "rp_project", Type: "string", Description: "ReportPortal project name (defaults to $ASTERISK_RP_PROJECT)"},
 			{Name: "rp_api_key_path", Type: "string", Description: "Path to RP API key file (defaults to $ASTERISK_RP_API_KEY_PATH or '.rp-api-key')"},
 		},
-		CreateSession: func(ctx context.Context, params fwmcp.StartParams, disp *dispatch.MuxDispatcher, bus *dispatch.SignalBus) (fwmcp.RunFunc, fwmcp.SessionMeta, error) {
+		CreateSession: func(ctx context.Context, params fwmcp.StartParams, disp *dispatch.MuxDispatcher, bus signal.Bus) (fwmcp.RunFunc, fwmcp.SessionMeta, error) {
 			return s.createSession(ctx, params, disp, bus)
 		},
 		FormatReport: func(result any) (string, any, error) {
@@ -230,7 +232,7 @@ func (s *Server) buildConfig() fwmcp.CircuitConfig {
 	return cfg
 }
 
-func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, disp *dispatch.MuxDispatcher, bus *dispatch.SignalBus) (fwmcp.RunFunc, fwmcp.SessionMeta, error) {
+func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, disp *dispatch.MuxDispatcher, bus signal.Bus) (fwmcp.RunFunc, fwmcp.SessionMeta, error) {
 	if s.Observer != nil {
 		def, err := rca.LoadCircuitDef(s.readDomainCircuit(), rca.DefaultThresholds())
 		if err == nil {
@@ -341,7 +343,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 	promptFS := s.DomainFS
 	basePath := filepath.Join(s.StateDir, "calibrate")
 
-	tokenTracker := dispatch.NewTokenTracker()
+	tokenTracker := billing.NewTracker()
 	tracked := dispatch.NewTokenTrackingDispatcher(disp, tokenTracker)
 
 	var comps []*engine.Component

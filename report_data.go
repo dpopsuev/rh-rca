@@ -10,7 +10,7 @@ import (
 	"time"
 
 	cal "github.com/dpopsuev/origami/calibrate"
-	"github.com/dpopsuev/origami/dispatch"
+	"github.com/dpopsuev/bugle/billing"
 	"github.com/dpopsuev/origami/format"
 	"github.com/dpopsuev/origami/report"
 	"github.com/dpopsuev/origami/schematics/toolkit"
@@ -344,9 +344,9 @@ var asteriskStepOrder = []string{
 	"F4_CORRELATE", "F5_REVIEW", "F6_REPORT",
 }
 
-// BuildCostBill constructs a dispatch.CostBill from an Asterisk
+// BuildCostBill constructs a billing.CostBill from an Asterisk
 // CalibrationReport, injecting domain-specific step names and case metadata.
-func BuildCostBill(report *CalibrationReport) *dispatch.CostBill {
+func BuildCostBill(report *CalibrationReport) *billing.CostBill {
 	if report.Tokens == nil {
 		return nil
 	}
@@ -356,15 +356,15 @@ func BuildCostBill(report *CalibrationReport) *dispatch.CostBill {
 		caseMap[cr.CaseID] = cr
 	}
 
-	return dispatch.BuildCostBill(report.Tokens,
-		dispatch.WithTitle("TokiMeter"),
-		dispatch.WithSubtitle(fmt.Sprintf("**%s** | transformer: `%s`", report.Scenario, report.Transformer)),
-		dispatch.WithStepOrder(asteriskStepOrder),
-		dispatch.WithStepNames(func(step string) string {
+	return billing.BuildCostBill(report.Tokens,
+		billing.WithTitle("TokiMeter"),
+		billing.WithSubtitle(fmt.Sprintf("**%s** | transformer: `%s`", report.Scenario, report.Transformer)),
+		billing.WithStepOrder(asteriskStepOrder),
+		billing.WithStepNames(func(step string) string {
 			return vocabNameWithCode(step)
 		}),
-		dispatch.WithCaseLabels(func(id string) string { return id }),
-		dispatch.WithCaseDetails(func(id string) string {
+		billing.WithCaseLabels(func(id string) string { return id }),
+		billing.WithCaseDetails(func(id string) string {
 			cr, ok := caseMap[id]
 			if !ok {
 				return "-"

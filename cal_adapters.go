@@ -9,7 +9,7 @@ import (
 
 	"github.com/dpopsuev/origami/engine"
 	cal "github.com/dpopsuev/origami/calibrate"
-	"github.com/dpopsuev/origami/dispatch"
+	"github.com/dpopsuev/bugle/billing"
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/rh-rca/store"
 )
@@ -45,7 +45,7 @@ type RCACalibrationAdapter struct {
 	BasePath        string
 	Thresholds      Thresholds
 	ScoreCard       *cal.ScoreCard
-	TokenTracker    dispatch.TokenTracker
+	TokenTracker    billing.Tracker
 	ReportTemplate  []byte // calibration-report.yaml data
 
 	// Internal state — populated by Load(), consumed by Collect().

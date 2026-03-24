@@ -259,7 +259,7 @@ type CaseResult struct {
 	SourceIssueType    string `json:"source_issue_type,omitempty" yaml:"source_issue_type,omitempty"`
 	SourceAutoAnalyzed bool   `json:"source_auto_analyzed,omitempty" yaml:"source_auto_analyzed,omitempty"`
 
-	// Token tracking (populated when dispatch.TokenTracker is present)
+	// Token tracking (populated when billing.Tracker is present)
 	PromptTokensTotal   int   `json:"prompt_tokens_total,omitempty" yaml:"prompt_tokens_total,omitempty"`
 	ArtifactTokensTotal int   `json:"artifact_tokens_total,omitempty" yaml:"artifact_tokens_total,omitempty"`
 	StepCount           int   `json:"step_count,omitempty" yaml:"step_count,omitempty"`

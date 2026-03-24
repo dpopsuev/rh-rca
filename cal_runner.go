@@ -11,7 +11,7 @@ import (
 
 	"github.com/dpopsuev/origami/engine"
 	cal "github.com/dpopsuev/origami/calibrate"
-	"github.com/dpopsuev/origami/dispatch"
+	"github.com/dpopsuev/bugle/billing"
 
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/rh-rca/store"
@@ -33,7 +33,7 @@ type RunConfig struct {
 	IDMapper     IDMappable           // optional; stub cross-case references
 	Runs         int
 	Thresholds   Thresholds
-	TokenTracker dispatch.TokenTracker // optional; when set, records per-step token usage
+	TokenTracker billing.Tracker // optional; when set, records per-step token usage
 	Parallel     int          // number of parallel workers (default 1 = serial)
 	TokenBudget  int          // max concurrent dispatches (token semaphore); 0 = Parallel
 	BatchSize    int          // max signals per batch for batch-file dispatch mode; 0 = Parallel

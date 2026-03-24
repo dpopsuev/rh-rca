@@ -21,7 +21,7 @@ func TestBuildCostBill_Basic(t *testing.T) {
 		CalibrationReport: cal.CalibrationReport{
 			Scenario:    "ptp",
 			Transformer: "llm",
-			Tokens: &dispatch.TokenSummary{
+			Tokens: &billing.TokenSummary{
 				TotalPromptTokens:   100_000,
 				TotalArtifactTokens: 5_000,
 				TotalTokens:         105_000,
@@ -82,7 +82,7 @@ func TestBuildCostBill_Basic(t *testing.T) {
 }
 
 func TestFormatCostBill_Nil(t *testing.T) {
-	out := dispatch.FormatCostBill(nil)
+	out := billing.FormatCostBill(nil)
 	if out != "" {
 		t.Errorf("expected empty string for nil bill, got %d bytes", len(out))
 	}
@@ -93,7 +93,7 @@ func TestFormatCostBill_Markdown(t *testing.T) {
 		CalibrationReport: cal.CalibrationReport{
 			Scenario:    "ptp",
 			Transformer: "llm",
-			Tokens: &dispatch.TokenSummary{
+			Tokens: &billing.TokenSummary{
 				TotalPromptTokens:   100_000,
 				TotalArtifactTokens: 5_000,
 				TotalTokens:         105_000,
@@ -116,7 +116,7 @@ func TestFormatCostBill_Markdown(t *testing.T) {
 	}
 
 	bill := BuildCostBill(report)
-	md := dispatch.FormatCostBill(bill)
+	md := billing.FormatCostBill(bill)
 
 	checks := []string{
 		"# TokiMeter",

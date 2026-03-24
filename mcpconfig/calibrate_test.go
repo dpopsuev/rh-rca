@@ -119,7 +119,7 @@ func TestCalibrate(t *testing.T) {
 		BasePath:       t.TempDir(),
 		Thresholds:     rca.DefaultThresholds(),
 		ScoreCard:      sc,
-		TokenTracker:   dispatch.NewTokenTracker(),
+		TokenTracker:   billing.NewTracker(),
 		ReportTemplate: calReportTemplate,
 	}
 

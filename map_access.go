@@ -1,6 +1,6 @@
 package rca
 
-import "github.com/dpopsuev/origami/schematics/toolkit"
+import "github.com/dpopsuev/origami/toolkit"
 
 // Thin wrappers delegating to toolkit. Unexported for RCA internal use.
 

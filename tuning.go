@@ -1,6 +1,6 @@
 package rca
 
-import "github.com/dpopsuev/origami/schematics/toolkit"
+import "github.com/dpopsuev/origami/toolkit"
 
 // QuickWin is an alias to the generic toolkit type.
 type QuickWin = toolkit.QuickWin

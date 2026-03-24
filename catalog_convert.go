@@ -3,7 +3,7 @@ package rca
 import (
 	"strings"
 
-	"github.com/dpopsuev/origami/schematics/toolkit"
+	"github.com/dpopsuev/origami/toolkit"
 )
 
 // ScenarioToCatalog converts a SourcePackConfig to a toolkit.SourceCatalog

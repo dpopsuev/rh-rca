@@ -11,7 +11,7 @@ import (
 	"github.com/dpopsuev/origami/engine"
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/origami/format"
-	"github.com/dpopsuev/origami/schematics/toolkit"
+	"github.com/dpopsuev/origami/toolkit"
 )
 
 // AnalysisConfig holds configuration for an analysis run.

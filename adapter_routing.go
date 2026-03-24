@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/dpopsuev/origami/engine"
-	"github.com/dpopsuev/origami/schematics/toolkit"
+	"github.com/dpopsuev/origami/toolkit"
 )
 
 // RoutingEntry is the RCA-specific alias for toolkit.RoutingEntry.

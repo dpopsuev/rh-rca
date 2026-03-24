@@ -8,7 +8,7 @@ import (
 	"github.com/dpopsuev/origami/engine"
 	"github.com/dpopsuev/rh-rca/rcatype"
 	"github.com/dpopsuev/rh-rca/store"
-	"github.com/dpopsuev/origami/schematics/toolkit"
+	"github.com/dpopsuev/origami/toolkit"
 )
 
 // Context keys used by inject hooks to store assembled template data.

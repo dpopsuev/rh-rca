@@ -3,7 +3,7 @@ module github.com/dpopsuev/rh-rca
 go 1.25.7
 
 require (
-	github.com/dpopsuev/bugle v0.0.0-00010101000000-000000000000
+	github.com/dpopsuev/bugle v0.4.0
 	github.com/dpopsuev/origami v0.2.0
 	github.com/google/go-cmp v0.7.0
 	github.com/modelcontextprotocol/go-sdk v1.3.1
@@ -48,7 +48,6 @@ require (
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
-	golang.org/x/time v0.15.0 // indirect
 	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

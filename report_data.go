@@ -13,7 +13,7 @@ import (
 	"github.com/dpopsuev/bugle/billing"
 	"github.com/dpopsuev/origami/format"
 	"github.com/dpopsuev/origami/report"
-	"github.com/dpopsuev/origami/schematics/toolkit"
+	"github.com/dpopsuev/origami/toolkit"
 )
 
 // --- Calibration report ---

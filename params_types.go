@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/dpopsuev/origami/circuit"
-	"github.com/dpopsuev/origami/schematics/toolkit"
+	"github.com/dpopsuev/origami/toolkit"
 )
 
 // ResolutionStatus is the RCA-specific alias for toolkit.ResolutionStatus.

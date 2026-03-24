@@ -7,7 +7,7 @@ import (
 	"reflect"
 
 	cal "github.com/dpopsuev/origami/calibrate"
-	"github.com/dpopsuev/origami/schematics/toolkit"
+	"github.com/dpopsuev/origami/toolkit"
 )
 
 // Metric is an alias for the generic calibrate.Metric type.

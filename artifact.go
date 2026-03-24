@@ -1,6 +1,6 @@
 package rca
 
-import "github.com/dpopsuev/origami/schematics/toolkit"
+import "github.com/dpopsuev/origami/toolkit"
 
 // DefaultBasePath is the default subdirectory under StateDir for
 // investigation data. Consumers resolve this relative to their StateDir.

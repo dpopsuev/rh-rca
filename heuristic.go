@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/dpopsuev/origami/circuit"
-	"github.com/dpopsuev/origami/transformers"
+	"github.com/dpopsuev/origami/toolkit"
 
 	"github.com/dpopsuev/rh-rca/store"
 
@@ -16,7 +16,7 @@ import (
 type heuristicTransformer struct {
 	st    store.Store
 	repos []string
-	eval  *transformers.MatchEvaluator
+	eval  *toolkit.MatchEvaluator
 	conv  convergenceConfig
 }
 
@@ -29,7 +29,7 @@ type convergenceConfig struct {
 // NewHeuristicTransformer creates a heuristic transformer from the given
 // heuristics YAML data.
 func NewHeuristicTransformer(st store.Store, repos []string, heuristicsData []byte) *heuristicTransformer {
-	eval, err := transformers.NewMatchEvaluator(heuristicsData)
+	eval, err := toolkit.NewMatchEvaluator(heuristicsData)
 	if err != nil {
 		panic(fmt.Sprintf("load heuristics.yaml: %v", err))
 	}

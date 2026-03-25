@@ -9,10 +9,8 @@ import (
 	"strings"
 	"time"
 
-	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/agentport"
-	"github.com/dpopsuev/origami/format"
-	"github.com/dpopsuev/origami/report"
+	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/toolkit"
 )
 
@@ -52,7 +50,7 @@ func metricRows(ms cal.MetricSet, group string) []map[string]any {
 		if metricGroup(m.ID) != group {
 			continue
 		}
-		passMark := format.BoolMark(m.Pass)
+		passMark := toolkit.BoolMark(m.Pass)
 		if m.DryCapped {
 			passMark = "~"
 		}
@@ -132,15 +130,15 @@ func CalibrationReportData(r *CalibrationReport) map[string]any {
 			srcTag = "-"
 		}
 		caseRows = append(caseRows, map[string]any{
-			"Case":   cr.CaseID,
-			"Test":   format.Truncate(cr.TestName, 40),
+			"Case":    cr.CaseID,
+			"Test":    toolkit.Truncate(cr.TestName, 40),
 			"Ver/Job": fmt.Sprintf("%s/%s", cr.Version, cr.Job),
-			"Defect": vocabNameWithCode(cr.ActualDefectType),
-			"DT":     format.BoolMark(cr.DefectTypeCorrect),
-			"Source": srcTag,
-			"Comp":   format.BoolMark(cr.ComponentCorrect),
-			"Path":   path,
-			"PathOK": format.BoolMark(cr.PathCorrect),
+			"Defect":  vocabNameWithCode(cr.ActualDefectType),
+			"DT":      toolkit.BoolMark(cr.DefectTypeCorrect),
+			"Source":  srcTag,
+			"Comp":    toolkit.BoolMark(cr.ComponentCorrect),
+			"Path":    path,
+			"PathOK":  toolkit.BoolMark(cr.PathCorrect),
 		})
 	}
 	data["case_results"] = caseRows
@@ -168,12 +166,12 @@ func CalibrationReportData(r *CalibrationReport) map[string]any {
 
 // RenderCalibrationReport produces the human-readable calibration report.
 func RenderCalibrationReport(r *CalibrationReport, templateData []byte) (string, error) {
-	def, err := report.ParseReportDef(templateData)
+	def, err := cal.ParseReportDef(templateData)
 	if err != nil {
 		return "", fmt.Errorf("parse calibration report template: %w", err)
 	}
 	data := CalibrationReportData(r)
-	return report.Render(def, data)
+	return cal.Render(def, data)
 }
 
 // --- Analysis (RCA) report ---
@@ -246,16 +244,16 @@ func AnalysisReportData(r *AnalysisReport, timestamp time.Time) map[string]any {
 		cases := groups[comp]
 		var caseRows []map[string]any
 		for _, cr := range cases {
-		srcTag := vocabSourceIssueTag(cr.SourceIssueType, cr.SourceAutoAnalyzed)
-		if srcTag == "" {
-			srcTag = "--"
-		}
-		caseRows = append(caseRows, map[string]any{
-			"Case":       cr.CaseLabel,
-			"Test":       format.Truncate(cr.TestName, 60),
-			"Verdict":    vocabNameWithCode(cr.DefectType),
-			"Confidence": fmt.Sprintf("%.0f%%", math.Round(cr.Convergence*100)),
-			"Source":     srcTag,
+			srcTag := vocabSourceIssueTag(cr.SourceIssueType, cr.SourceAutoAnalyzed)
+			if srcTag == "" {
+				srcTag = "--"
+			}
+			caseRows = append(caseRows, map[string]any{
+				"Case":       cr.CaseLabel,
+				"Test":       toolkit.Truncate(cr.TestName, 60),
+				"Verdict":    vocabNameWithCode(cr.DefectType),
+				"Confidence": fmt.Sprintf("%.0f%%", math.Round(cr.Convergence*100)),
+				"Source":     srcTag,
 			})
 		}
 		evidenceSet := collectAnalysisEvidence(cases)
@@ -329,12 +327,12 @@ func RenderAnalysisReport(r *AnalysisReport, timestamp time.Time, templateData [
 	if r == nil || len(r.CaseResults) == 0 {
 		return "# RCA Report\n\nNo failures analyzed.\n", nil
 	}
-	def, err := report.ParseReportDef(templateData)
+	def, err := cal.ParseReportDef(templateData)
 	if err != nil {
 		return "", fmt.Errorf("parse RCA report template: %w", err)
 	}
 	data := AnalysisReportData(r, timestamp)
-	return report.Render(def, data)
+	return cal.Render(def, data)
 }
 
 // --- Cost bill (moved from tokimeter.go) ---
@@ -528,12 +526,12 @@ func transcriptEntryData(entries []TranscriptEntry) []map[string]any {
 
 // RenderTranscript produces a Markdown document for one RCA transcript.
 func RenderTranscript(t *RCATranscript, templateData []byte) (string, error) {
-	def, err := report.ParseReportDef(templateData)
+	def, err := cal.ParseReportDef(templateData)
 	if err != nil {
 		return "", fmt.Errorf("parse transcript template: %w", err)
 	}
 	data := TranscriptData(t)
-	return report.Render(def, data)
+	return cal.Render(def, data)
 }
 
 // --- internal helpers ---
@@ -639,7 +637,6 @@ func groupAnalysisByComponent(cases []AnalysisCaseResult) map[string][]AnalysisC
 	return groups
 }
 
-
 func collectAnalysisEvidence(cases []AnalysisCaseResult) []string {
 	seen := make(map[string]bool)
 	var result []string
@@ -653,4 +650,3 @@ func collectAnalysisEvidence(cases []AnalysisCaseResult) []string {
 	}
 	return result
 }
-

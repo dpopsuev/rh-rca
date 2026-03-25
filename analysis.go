@@ -9,19 +9,18 @@ import (
 	"github.com/dpopsuev/rh-rca/store"
 
 	"github.com/dpopsuev/origami/engine"
-	"github.com/dpopsuev/rh-rca/rcatype"
-	"github.com/dpopsuev/origami/format"
 	"github.com/dpopsuev/origami/toolkit"
+	"github.com/dpopsuev/rh-rca/rcatype"
 )
 
 // AnalysisConfig holds configuration for an analysis run.
 type AnalysisConfig struct {
-	Components      []*engine.Component
-	Envelope        *rcatype.Envelope
-	Catalog         toolkit.SourceCatalog
-	Thresholds      Thresholds
-	BasePath        string // root directory for investigation artifacts; defaults to DefaultBasePath
-	CircuitData     []byte // circuit definition YAML; required
+	Components  []*engine.Component
+	Envelope    *rcatype.Envelope
+	Catalog     toolkit.SourceCatalog
+	Thresholds  Thresholds
+	BasePath    string // root directory for investigation artifacts; defaults to DefaultBasePath
+	CircuitData []byte // circuit definition YAML; required
 }
 
 // AnalysisReport is the output of an analysis run.
@@ -35,21 +34,21 @@ type AnalysisReport struct {
 
 // AnalysisCaseResult captures per-case investigation outcome without ground truth scoring.
 type AnalysisCaseResult struct {
-	CaseLabel     string   `json:"case_label"`
-	TestName      string   `json:"test_name"`
-	StoreCaseID   int64    `json:"store_case_id"`
-	DefectType    string   `json:"defect_type"`
-	Category      string   `json:"category"`
-	RCAMessage    string   `json:"rca_message"`
-	Component     string   `json:"component"`
-	Path          []string `json:"path"`
-	RecallHit     bool     `json:"recall_hit"`
-	Skip          bool     `json:"skip"`
-	Cascade       bool     `json:"cascade"`
-	EvidenceRefs  []string `json:"evidence_refs"`
-	SelectedRepos []string `json:"selected_repos"`
-	Convergence    float64  `json:"convergence"`
-	RCAID          int64    `json:"rca_id"`
+	CaseLabel          string   `json:"case_label"`
+	TestName           string   `json:"test_name"`
+	StoreCaseID        int64    `json:"store_case_id"`
+	DefectType         string   `json:"defect_type"`
+	Category           string   `json:"category"`
+	RCAMessage         string   `json:"rca_message"`
+	Component          string   `json:"component"`
+	Path               []string `json:"path"`
+	RecallHit          bool     `json:"recall_hit"`
+	Skip               bool     `json:"skip"`
+	Cascade            bool     `json:"cascade"`
+	EvidenceRefs       []string `json:"evidence_refs"`
+	SelectedRepos      []string `json:"selected_repos"`
+	Convergence        float64  `json:"convergence"`
+	RCAID              int64    `json:"rca_id"`
 	SourceIssueType    string   `json:"source_issue_type,omitempty"`
 	SourceAutoAnalyzed bool     `json:"source_auto_analyzed,omitempty"`
 }
@@ -64,7 +63,7 @@ func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg Analysi
 	}
 	report := &AnalysisReport{
 		Transformer: transformerName,
-		TotalCases: len(cases),
+		TotalCases:  len(cases),
 	}
 
 	logger := slog.Default().With("component", "analyze")
@@ -118,11 +117,11 @@ func walkAnalysisCase(
 		Namespace: "inject",
 		Name:      "rca-inject-hooks",
 		Hooks: InjectHooksWithOpts(InjectHookOpts{
-			Store:           st,
-			CaseData:        caseData,
-			Envelope:        cfg.Envelope,
-			Catalog:         cfg.Catalog,
-			CaseDir:         caseDir,
+			Store:    st,
+			CaseData: caseData,
+			Envelope: cfg.Envelope,
+			Catalog:  cfg.Catalog,
+			CaseDir:  caseDir,
 		}),
 	}
 	comps := append(cfg.Components, hooksComp, injectComp)
@@ -235,11 +234,11 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 	b.WriteString(fmt.Sprintf("Investigated: %d/%d\n\n", investigated, report.TotalCases))
 
 	b.WriteString("--- Per-case breakdown ---\n")
-	tbl := format.NewTable(format.ASCII)
+	tbl := toolkit.NewTable(toolkit.ASCII)
 	tbl.Header("Case", "Test", "Defect", "Source", "Category", "Conv", "Path", "Flags")
 	tbl.Columns(
-		format.ColumnConfig{Number: 2, MaxWidth: 50},
-		format.ColumnConfig{Number: 6, Align: format.AlignRight},
+		toolkit.ColumnConfig{Number: 2, MaxWidth: 50},
+		toolkit.ColumnConfig{Number: 6, Align: toolkit.AlignRight},
 	)
 	for _, cr := range report.CaseResults {
 		path := vocabStagePath(cr.Path)
@@ -268,7 +267,7 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 		}
 		tbl.Row(
 			cr.CaseLabel,
-			format.Truncate(cr.TestName, 50),
+			toolkit.Truncate(cr.TestName, 50),
 			vocabNameWithCode(cr.DefectType),
 			rpTag,
 			cr.Category,
@@ -283,7 +282,7 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 	// RCA messages below the table
 	for _, cr := range report.CaseResults {
 		if cr.RCAMessage != "" {
-			b.WriteString(fmt.Sprintf("  %s RCA: %s\n", cr.CaseLabel, format.Truncate(cr.RCAMessage, 80)))
+			b.WriteString(fmt.Sprintf("  %s RCA: %s\n", cr.CaseLabel, toolkit.Truncate(cr.RCAMessage, 80)))
 		}
 	}
 

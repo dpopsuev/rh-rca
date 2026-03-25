@@ -9,25 +9,26 @@ provides:
   transformers: [context-builder, prompt-filler]
   extractors: [recall, triage, resolve, investigate, correlate, review, report]
   hooks: [store.recall, store.triage, store.investigate, store.correlate, store.review]
-requires:
+needs:
   origami: ">=0.3.0"
-  sockets:
+  sources:
+    - name: source
+      type: SourceReader
+      option: WithSourceReader
+      description: Reads test failure data from an external tracker
+    - name: discoverer
+      type: RunDiscoverer
+      option: WithRunDiscoverer
+      description: Discovers available CI runs and their failures
+      optional: true
+  storage:
     - name: store
       type: store.Store
       option: WithStore
       description: Persistent storage backend (built-in SQLite default)
       optional: true
-    - name: source
-      type: SourceReader
-      option: WithSourceReader
-      description: Reads test failure data from an external tracker
     - name: writer
       type: DefectWriter
       option: WithDefectWriter
       description: Writes RCA results back to the external tracker
-      optional: true
-    - name: discoverer
-      type: RunDiscoverer
-      option: WithRunDiscoverer
-      description: Discovers available CI runs and their failures
       optional: true

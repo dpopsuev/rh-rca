@@ -6,9 +6,9 @@ description: "ReportPortal connector — API client, envelope fetching, defect p
 provides:
   transformers: []
   hooks: []
-requires:
+needs:
   origami: ">=0.3.0"
-satisfies:
+gives:
   - socket: source
     factory: NewSourceReader
     wire: factory

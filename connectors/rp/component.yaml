@@ -1,3 +1,4 @@
+kind: component
 component: rh-rca-reportportal
 module: github.com/dpopsuev/rh-rca/connectors/rp
 namespace: reportportal

@@ -1,3 +1,4 @@
+kind: component
 component: rh-rca
 module: github.com/dpopsuev/rh-rca
 namespace: rca

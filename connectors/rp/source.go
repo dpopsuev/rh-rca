@@ -5,20 +5,19 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dpopsuev/rh-rca"
 	"github.com/dpopsuev/rh-rca/rcatype"
 )
 
-var _ rca.SourceReader = (*SourceReaderRP)(nil)
+var _ rcatype.SourceReader = (*SourceReaderRP)(nil)
 
-// SourceReaderRP implements rca.SourceReader for ReportPortal.
+// SourceReaderRP implements rcatype.SourceReader for ReportPortal.
 type SourceReaderRP struct {
 	client  *Client
 	project string
 }
 
 // NewSourceReader creates a SourceReader connected to a ReportPortal instance.
-func NewSourceReader(baseURL, apiKeyPath, project string) (rca.SourceReader, error) {
+func NewSourceReader(baseURL, apiKeyPath, project string) (rcatype.SourceReader, error) {
 	key, err := ReadAPIKey(apiKeyPath)
 	if err != nil {
 		return nil, err
@@ -68,14 +67,14 @@ func (b *envelopeFetcherBridge) Fetch(runID string) (*rcatype.Envelope, error) {
 	return envelopeToRCAType(rpEnv), nil
 }
 
-// DefectWriterRP implements rca.DefectWriter for ReportPortal.
+// DefectWriterRP implements rcatype.DefectWriter for ReportPortal.
 type DefectWriterRP struct {
 	pusher *Pusher
 }
 
-var _ rca.DefectWriter = (*DefectWriterRP)(nil)
+var _ rcatype.DefectWriter = (*DefectWriterRP)(nil)
 
-func NewDefectWriter(baseURL, apiKeyPath, project, submittedBy string) (rca.DefectWriter, error) {
+func NewDefectWriter(baseURL, apiKeyPath, project, submittedBy string) (rcatype.DefectWriter, error) {
 	key, err := ReadAPIKey(apiKeyPath)
 	if err != nil {
 		return nil, err
@@ -87,7 +86,7 @@ func NewDefectWriter(baseURL, apiKeyPath, project, submittedBy string) (rca.Defe
 	return &DefectWriterRP{pusher: NewPusher(client, project, submittedBy, "")}, nil
 }
 
-func (p *DefectWriterRP) Push(verdict rca.RCAVerdict) (*rca.PushedRecord, error) {
+func (p *DefectWriterRP) Push(verdict rcatype.RCAVerdict) (*rcatype.PushedRecord, error) {
 	st := NewMemPushStore()
 	if err := p.pusher.PushVerdict(verdict, st); err != nil {
 		return nil, err
@@ -96,7 +95,7 @@ func (p *DefectWriterRP) Push(verdict rca.RCAVerdict) (*rca.PushedRecord, error)
 	if rec == nil {
 		return nil, nil
 	}
-	return &rca.PushedRecord{RunID: rec.RunID, DefectType: rec.DefectType}, nil
+	return &rcatype.PushedRecord{RunID: rec.RunID, DefectType: rec.DefectType}, nil
 }
 
 // envelopeToRCAType converts RP types to rcatype, storing RP-specific values in Tags.

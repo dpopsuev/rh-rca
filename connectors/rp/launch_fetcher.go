@@ -4,19 +4,19 @@ import (
 	"context"
 	"time"
 
-	"github.com/dpopsuev/rh-rca"
+	"github.com/dpopsuev/rh-rca/rcatype"
 )
 
-var _ rca.RunDiscoverer = (*RPRunDiscoverer)(nil)
+var _ rcatype.RunDiscoverer = (*RPRunDiscoverer)(nil)
 
-// RPRunDiscoverer implements rca.RunDiscoverer for ReportPortal.
+// RPRunDiscoverer implements rcatype.RunDiscoverer for ReportPortal.
 type RPRunDiscoverer struct {
 	client  *Client
 	project string
 }
 
 // NewRunDiscoverer creates a RunDiscoverer backed by a ReportPortal API client.
-func NewRunDiscoverer(baseURL, apiKeyPath, project string) (rca.RunDiscoverer, error) {
+func NewRunDiscoverer(baseURL, apiKeyPath, project string) (rcatype.RunDiscoverer, error) {
 	key, err := ReadAPIKey(apiKeyPath)
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func NewRunDiscoverer(baseURL, apiKeyPath, project string) (rca.RunDiscoverer, e
 	return &RPRunDiscoverer{client: client, project: project}, nil
 }
 
-func (f *RPRunDiscoverer) DiscoverRuns(project string, since time.Time) ([]rca.RunInfo, error) {
+func (f *RPRunDiscoverer) DiscoverRuns(project string, since time.Time) ([]rcatype.RunInfo, error) {
 	ctx := context.Background()
 	paged, err := f.client.Project(project).Launches().List(ctx,
 		WithPageSize(100),
@@ -38,7 +38,7 @@ func (f *RPRunDiscoverer) DiscoverRuns(project string, since time.Time) ([]rca.R
 		return nil, err
 	}
 
-	var runs []rca.RunInfo
+	var runs []rcatype.RunInfo
 	for _, l := range paged.Content {
 		var startTime time.Time
 		if l.StartTime != nil {
@@ -53,7 +53,7 @@ func (f *RPRunDiscoverer) DiscoverRuns(project string, since time.Time) ([]rca.R
 				failed = execs
 			}
 		}
-		runs = append(runs, rca.RunInfo{
+		runs = append(runs, rcatype.RunInfo{
 			ID:          l.ID,
 			UUID:        l.UUID,
 			Name:        l.Name,
@@ -66,7 +66,7 @@ func (f *RPRunDiscoverer) DiscoverRuns(project string, since time.Time) ([]rca.R
 	return runs, nil
 }
 
-func (f *RPRunDiscoverer) FetchFailures(runID int) ([]rca.FailureInfo, error) {
+func (f *RPRunDiscoverer) FetchFailures(runID int) ([]rcatype.FailureInfo, error) {
 	ctx := context.Background()
 	items, err := f.client.Project(f.project).Items().ListAll(ctx,
 		WithLaunchID(runID),
@@ -76,9 +76,9 @@ func (f *RPRunDiscoverer) FetchFailures(runID int) ([]rca.FailureInfo, error) {
 		return nil, err
 	}
 
-	var failures []rca.FailureInfo
+	var failures []rcatype.FailureInfo
 	for _, item := range items {
-		fi := rca.FailureInfo{
+		fi := rcatype.FailureInfo{
 			RunID:    runID,
 			ItemID:   item.ID,
 			ItemUUID: item.UUID,

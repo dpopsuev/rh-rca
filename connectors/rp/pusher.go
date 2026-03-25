@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dpopsuev/rh-rca"
+	"github.com/dpopsuev/rh-rca/rcatype"
 )
 
 // Pusher implements DefectPusher by calling the RP API to update defect
@@ -71,7 +71,7 @@ func (p *Pusher) Push(artifactPath string, store PushStore, jiraTicketID, jiraLi
 }
 
 // PushVerdict pushes an RCAVerdict to RP, converting string CaseIDs to RP int IDs.
-func (p *Pusher) PushVerdict(verdict rca.RCAVerdict, store PushStore) error {
+func (p *Pusher) PushVerdict(verdict rcatype.RCAVerdict, store PushStore) error {
 	ctx := context.Background()
 	items := p.client.Project(p.project).Items()
 

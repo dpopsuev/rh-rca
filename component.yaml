@@ -4,7 +4,7 @@ module: github.com/dpopsuev/rh-rca
 namespace: rca
 version: "1.0.0"
 description: "Red Hat Root Cause Analysis — CI failure investigation circuit"
-factory: NewServer
+hooks: "Hooks()"
 resolver: SchematicResolver
 provides:
   transformers: [context-builder, prompt-filler]
@@ -17,6 +17,7 @@ needs:
       type: SourceReader
       option: WithSourceReader
       description: Reads test failure data from an external tracker
+      optional: true
     - name: discoverer
       type: RunDiscoverer
       option: WithRunDiscoverer

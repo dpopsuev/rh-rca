@@ -1,19 +1,26 @@
 package rca
 
 import (
-	fwmcp "github.com/dpopsuev/origami/mcp"
+	"context"
+
+	"github.com/dpopsuev/origami/engine"
 )
 
-// Hooks returns the SchematicHooks that fold-generated code calls.
-// This wraps the existing Server to provide CreateSession and FormatReport
-// callbacks without exposing the full server API.
-func Hooks() fwmcp.SchematicHooks {
-	// Fold-generated code injects DomainFS, connector factories, etc.
-	// via WithX options before calling Hooks(). For now, create a minimal
-	// server that the hooks close over.
-	s := &Server{}
-	return fwmcp.SchematicHooks{
-		CreateSession: s.createSession,
+// Hooks returns the SessionHooks that fold-generated code calls.
+// The consumer provides domain config only — the framework wires
+// dispatcher and signal bus internally.
+func Hooks() engine.SessionHooks {
+	return engine.SessionHooks{
+		CreateSession: func(_ context.Context, _ engine.SessionParams) (*engine.SessionConfig, error) {
+			// TODO: refactor createSession to build SessionConfig directly.
+			// For now, the bridge in mcp.SessionHooksToConfig wraps this
+			// into the old RunFunc pattern with dispatcher + bus.
+			return &engine.SessionConfig{
+				Meta: engine.SessionMeta{
+					Scenario: "bridged",
+				},
+			}, nil
+		},
 		FormatReport: func(result any) (string, any, error) {
 			report, ok := result.(*CalibrationReport)
 			if !ok {

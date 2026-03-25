@@ -65,43 +65,43 @@ func InjectHooksWithOpts(opts InjectHookOpts) engine.HookRegistry {
 }
 
 func newInjectEnvelopeHook(env *rcatype.Envelope) engine.Hook {
-	return toolkit.NewContextInjector("inject.envelope", func(walkerCtx map[string]any) {
+	return engine.NewContextInjector("inject.envelope", func(walkerCtx map[string]any) {
 		injectEnvelopeData(env, walkerCtx)
 	})
 }
 
 func newInjectFailureHook(caseData *store.Case) engine.Hook {
-	return toolkit.NewContextInjector("inject.failure", func(walkerCtx map[string]any) {
+	return engine.NewContextInjector("inject.failure", func(walkerCtx map[string]any) {
 		injectFailureData(caseData, walkerCtx)
 	})
 }
 
 func newInjectHistoryHook(st store.Store, caseData *store.Case) engine.Hook {
-	return toolkit.NewContextInjector("inject.history", func(walkerCtx map[string]any) {
+	return engine.NewContextInjector("inject.history", func(walkerCtx map[string]any) {
 		injectHistoryData(st, caseData, walkerCtx)
 	})
 }
 
 func newInjectRecallDigestHook(st store.Store) engine.Hook {
-	return toolkit.NewContextInjector("inject.recall-digest", func(walkerCtx map[string]any) {
+	return engine.NewContextInjector("inject.recall-digest", func(walkerCtx map[string]any) {
 		injectRecallDigestData(st, walkerCtx)
 	})
 }
 
 func newInjectSourcesHook(env *rcatype.Envelope, catalog toolkit.SourceCatalog) engine.Hook {
-	return toolkit.NewContextInjector("inject.sources", func(walkerCtx map[string]any) {
+	return engine.NewContextInjector("inject.sources", func(walkerCtx map[string]any) {
 		injectSourcesData(env, catalog, walkerCtx)
 	})
 }
 
 func newInjectPriorHook(caseDir string) engine.Hook {
-	return toolkit.NewContextInjector("inject.prior", func(walkerCtx map[string]any) {
+	return engine.NewContextInjector("inject.prior", func(walkerCtx map[string]any) {
 		injectPriorData(caseDir, walkerCtx)
 	})
 }
 
 func newInjectTaxonomyHook() engine.Hook {
-	return toolkit.NewContextInjector("inject.taxonomy", func(walkerCtx map[string]any) {
+	return engine.NewContextInjector("inject.taxonomy", func(walkerCtx map[string]any) {
 		injectTaxonomyData(walkerCtx)
 	})
 }
@@ -274,7 +274,7 @@ func extractSearchKeywords(walkerCtx map[string]any) []string {
 // keywords from the walker context and writes them to
 // "dsr.search_keywords" so the GND sub-circuit can use them.
 func newInjectCodeKeywordsHook() engine.Hook {
-	return toolkit.NewContextInjector("inject.code-keywords", func(walkerCtx map[string]any) {
+	return engine.NewContextInjector("inject.code-keywords", func(walkerCtx map[string]any) {
 		keywords := extractSearchKeywords(walkerCtx)
 		if len(keywords) > 0 {
 			walkerCtx["dsr.search_keywords"] = keywords

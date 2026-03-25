@@ -44,7 +44,7 @@ var allNodeNames = []string{"recall", "triage", "resolve", "investigate", "corre
 // falling back to the hardcoded allNodeNames list.
 func nodeNames(cd *circuit.CircuitDef) []string {
 	if cd != nil {
-		if names := toolkit.NodeNamesFromCircuit(cd); len(names) > 0 {
+		if names := engine.NodeNamesFromCircuit(cd); len(names) > 0 {
 			return names
 		}
 	}
@@ -83,7 +83,7 @@ func TransformerComponent(t engine.Transformer, cd ...*circuit.CircuitDef) *engi
 	return &engine.Component{
 		Namespace:    "rca",
 		Name:         "rca-transformer",
-		Transformers: toolkit.TransformerForAllNodes(t, nodeNames(def)),
+		Transformers: engine.TransformerForAllNodes(t, nodeNames(def)),
 	}
 }
 
@@ -112,7 +112,7 @@ func buildTransformers(_ ComponentConfig) engine.TransformerRegistry {
 }
 
 func buildExtractors(cd *circuit.CircuitDef) engine.ExtractorRegistry {
-	return toolkit.ExtractorForAllNodes(func(name string) engine.Extractor {
+	return engine.ExtractorForAllNodes(func(name string) engine.Extractor {
 		return NewMapExtractor(name)
 	}, nodeNames(cd))
 }

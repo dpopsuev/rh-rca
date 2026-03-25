@@ -23,8 +23,8 @@ type HITLConfig struct {
 	CaseDir   string
 }
 
-// HITLResult is the RCA-specific alias for toolkit.HITLResult.
-type HITLResult = toolkit.HITLResult
+// HITLResult is the RCA-specific alias for engine.HITLResult.
+type HITLResult = engine.HITLResult
 
 // RunHITLStep runs (or resumes) the circuit until it either pauses for
 // human input (Interrupt) or completes. If a checkpoint exists, the walk
@@ -100,7 +100,7 @@ func ResumeHITLStep(ctx context.Context, cfg HITLConfig, artifactData []byte) (*
 // LoadCheckpointState loads the WalkerState from the checkpoint directory.
 // Returns nil, nil if no checkpoint exists.
 func LoadCheckpointState(caseDir string, caseID int64) (*circuit.WalkerState, error) {
-	return toolkit.LoadCheckpointState(caseDir, fmt.Sprintf("case-%d", caseID))
+	return engine.LoadCheckpointState(caseDir, fmt.Sprintf("case-%d", caseID))
 }
 
 func prepareWalker(cp circuit.Checkpointer, walkerID string, cfg HITLConfig) (circuit.Walker, string, error) {
@@ -110,7 +110,7 @@ func prepareWalker(cp circuit.Checkpointer, walkerID string, cfg HITLConfig) (ci
 	injectHITLContext(walker.State(), cfg)
 
 	startNode := "recall"
-	if resumed := toolkit.RestoreWalkerState(walker, loaded); resumed != "" {
+	if resumed := engine.RestoreWalkerState(walker, loaded); resumed != "" {
 		startNode = resumed
 	}
 
@@ -129,5 +129,5 @@ func injectHITLContext(state *circuit.WalkerState, cfg HITLConfig) {
 }
 
 func buildResult(walker circuit.Walker, walkErr error) (*HITLResult, error) {
-	return toolkit.BuildHITLResult(walker, walkErr)
+	return engine.BuildHITLResult(walker, walkErr)
 }

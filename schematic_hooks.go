@@ -14,6 +14,7 @@ import (
 func Hooks() engine.SessionHooks {
 	return engine.SessionHooks{
 		CreateSession: createSession,
+		StepSchemas:   RCAStepSchemas(),
 		FormatReport: func(result any) (string, any, error) {
 			report, ok := result.(*CalibrationReport)
 			if !ok {

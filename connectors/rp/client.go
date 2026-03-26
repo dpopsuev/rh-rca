@@ -35,6 +35,11 @@ func New(baseURL, bearerToken string, opts ...Option) (*Client, error) {
 	if baseURL == "" {
 		return nil, fmt.Errorf("rp: baseURL is required")
 	}
+	if !strings.HasPrefix(baseURL, "https://") &&
+		!strings.HasPrefix(baseURL, "http://localhost") &&
+		!strings.HasPrefix(baseURL, "http://127.0.0.1") {
+		return nil, fmt.Errorf("rp: baseURL must use HTTPS (got %q)", baseURL)
+	}
 	baseURL = strings.TrimSuffix(baseURL, "/")
 
 	cfg := &clientConfig{}

@@ -2,6 +2,7 @@ package rp
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -30,7 +31,10 @@ func NewSourceReader(baseURL, apiKeyPath, project string) (rcatype.SourceReader,
 }
 
 func (a *SourceReaderRP) FetchEnvelope(runID string) (*rcatype.Envelope, error) {
-	launchID, _ := strconv.Atoi(runID)
+	launchID, err := strconv.Atoi(runID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid runID %q: %w", runID, err)
+	}
 	f := NewFetcher(a.client, a.project)
 	rpEnv, err := f.Fetch(launchID)
 	if err != nil {
@@ -58,7 +62,10 @@ type envelopeFetcherBridge struct {
 }
 
 func (b *envelopeFetcherBridge) Fetch(runID string) (*rcatype.Envelope, error) {
-	launchID, _ := strconv.Atoi(runID)
+	launchID, err := strconv.Atoi(runID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid runID %q: %w", runID, err)
+	}
 	f := NewFetcher(b.client, b.project)
 	rpEnv, err := f.Fetch(launchID)
 	if err != nil {

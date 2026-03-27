@@ -1,36 +1,38 @@
-kind: component
-component: rh-rca
-module: github.com/dpopsuev/origami-rca
-namespace: rca
-version: "1.0.0"
-description: "Red Hat Root Cause Analysis — CI failure investigation circuit"
-hooks: "Hooks()"
-resolver: SchematicResolver
-provides:
-  transformers: [context-builder, prompt-filler]
-  extractors: [recall, triage, resolve, investigate, correlate, review, report]
-  hooks: [store.recall, store.triage, store.investigate, store.correlate, store.review]
-needs:
-  origami: ">=0.3.0"
-  sources:
-    - name: source
-      type: SourceReader
-      option: WithSourceReader
-      description: Reads test failure data from an external tracker
-      optional: true
-    - name: discoverer
-      type: RunDiscoverer
-      option: WithRunDiscoverer
-      description: Discovers available CI runs and their failures
-      optional: true
-  storage:
-    - name: store
-      type: store.Store
-      option: WithStore
-      description: Persistent storage backend (built-in SQLite default)
-      optional: true
-    - name: writer
-      type: DefectWriter
-      option: WithDefectWriter
-      description: Writes RCA results back to the external tracker
-      optional: true
+apiVersion: origami/v1
+kind: Schematic
+metadata:
+  name: origami-rca
+  module: github.com/dpopsuev/origami-rca
+  namespace: rca
+  description: "Red Hat Root Cause Analysis — CI failure investigation circuit"
+spec:
+  version: "1.0.0"
+  hooks: "Hooks()"
+  resolver: SchematicResolver
+  provides:
+    transformers: [context-builder, prompt-filler]
+    extractors: [recall, triage, resolve, investigate, correlate, review, report]
+    hooks: [store.recall, store.triage, store.investigate, store.correlate, store.review]
+  needs:
+    sources:
+      - name: source
+        type: SourceReader
+        option: WithSourceReader
+        description: Reads test failure data from an external tracker
+        optional: true
+      - name: discoverer
+        type: RunDiscoverer
+        option: WithRunDiscoverer
+        description: Discovers available CI runs and their failures
+        optional: true
+    storage:
+      - name: store
+        type: store.Store
+        option: WithStore
+        description: Persistent storage backend (built-in SQLite default)
+        optional: true
+      - name: writer
+        type: DefectWriter
+        option: WithDefectWriter
+        description: Writes RCA results back to the external tracker
+        optional: true

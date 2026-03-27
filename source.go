@@ -1,8 +1,8 @@
 package rca
 
 import (
-	"github.com/dpopsuev/rh-rca/rcatype"
-	"github.com/dpopsuev/rh-rca/store"
+	"github.com/dpopsuev/origami-rca/rcatype"
+	"github.com/dpopsuev/origami-rca/store"
 )
 
 // Re-export domain types from rcatype for backwards compatibility.

@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/dpopsuev/rh-rca/store"
+	"github.com/dpopsuev/origami-rca/store"
 
 	"github.com/dpopsuev/origami/engine"
 	"github.com/dpopsuev/origami/toolkit"
-	"github.com/dpopsuev/rh-rca/rcatype"
+	"github.com/dpopsuev/origami-rca/rcatype"
 )
 
 // AnalysisConfig holds configuration for an analysis run.

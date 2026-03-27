@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/dpopsuev/rh-rca"
+	"github.com/dpopsuev/origami-rca"
 )
 
 func init() {

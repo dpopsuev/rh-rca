@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/dpopsuev/rh-rca/rcatype"
+	"github.com/dpopsuev/origami-rca/rcatype"
 )
 
 var _ rcatype.RunDiscoverer = (*RPRunDiscoverer)(nil)

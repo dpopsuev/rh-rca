@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/dpopsuev/rh-rca/store"
+	"github.com/dpopsuev/origami-rca/store"
 )
 
 // applyStoreEffects updates Store entities based on the completed step's artifact.

@@ -6,7 +6,7 @@ import (
 	"github.com/dpopsuev/origami/circuit"
 	"github.com/dpopsuev/origami/engine"
 
-	"github.com/dpopsuev/rh-rca/store"
+	"github.com/dpopsuev/origami-rca/store"
 )
 
 // StoreHooks creates a HookRegistry with per-step store effect hooks

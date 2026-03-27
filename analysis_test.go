@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/dpopsuev/origami/engine"
-	"github.com/dpopsuev/rh-rca"
-	"github.com/dpopsuev/rh-rca/store"
+	"github.com/dpopsuev/origami-rca"
+	"github.com/dpopsuev/origami-rca/store"
 )
 
 func TestRunAnalysis_HeuristicTransformer(t *testing.T) {

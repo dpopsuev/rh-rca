@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/dpopsuev/origami/engine"
-	"github.com/dpopsuev/rh-rca"
-	"github.com/dpopsuev/rh-rca/rcatype"
-	"github.com/dpopsuev/rh-rca/store"
+	"github.com/dpopsuev/origami-rca"
+	"github.com/dpopsuev/origami-rca/rcatype"
+	"github.com/dpopsuev/origami-rca/store"
 )
 
 func loadEnvelope(t *testing.T, domainFS fs.FS) *rcatype.Envelope {

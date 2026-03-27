@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dpopsuev/rh-rca/rcatype"
+	"github.com/dpopsuev/origami-rca/rcatype"
 )
 
 // Pusher implements DefectPusher by calling the RP API to update defect

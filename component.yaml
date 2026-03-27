@@ -1,6 +1,6 @@
 kind: component
 component: rh-rca
-module: github.com/dpopsuev/rh-rca
+module: github.com/dpopsuev/origami-rca
 namespace: rca
 version: "1.0.0"
 description: "Red Hat Root Cause Analysis — CI failure investigation circuit"

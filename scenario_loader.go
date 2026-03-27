@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dpopsuev/rh-rca/rcatype"
+	"github.com/dpopsuev/origami-rca/rcatype"
 
 	"gopkg.in/yaml.v3"
 )

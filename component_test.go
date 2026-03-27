@@ -3,7 +3,7 @@ package rca
 import (
 	"testing"
 
-	"github.com/dpopsuev/rh-rca/store"
+	"github.com/dpopsuev/origami-rca/store"
 )
 
 func TestComponent_NamespaceAndProvides(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	"github.com/dpopsuev/origami/agentport"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/engine"
-	"github.com/dpopsuev/rh-rca"
+	"github.com/dpopsuev/origami-rca"
 )
 
 func calibrateScenarioName() string {

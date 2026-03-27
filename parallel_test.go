@@ -6,7 +6,7 @@ import (
 
 	"github.com/dpopsuev/origami/engine"
 
-	"github.com/dpopsuev/rh-rca"
+	"github.com/dpopsuev/origami-rca"
 )
 
 func TestParallel_ResultsMatch(t *testing.T) {

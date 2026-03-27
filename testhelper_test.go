@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	cal "github.com/dpopsuev/origami/calibrate"
-	rca "github.com/dpopsuev/rh-rca"
+	rca "github.com/dpopsuev/origami-rca"
 )
 
 // testDomainFS returns the testdata_mcp directory as an fs.FS.

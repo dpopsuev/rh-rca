@@ -8,7 +8,7 @@ import (
 	"github.com/dpopsuev/origami/circuit"
 	"github.com/dpopsuev/origami/toolkit"
 
-	"github.com/dpopsuev/rh-rca/store"
+	"github.com/dpopsuev/origami-rca/store"
 
 	"gopkg.in/yaml.v3"
 )

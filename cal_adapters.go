@@ -10,8 +10,8 @@ import (
 	"github.com/dpopsuev/origami/engine"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/agentport"
-	"github.com/dpopsuev/rh-rca/rcatype"
-	"github.com/dpopsuev/rh-rca/store"
+	"github.com/dpopsuev/origami-rca/rcatype"
+	"github.com/dpopsuev/origami-rca/store"
 )
 
 // Compile-time checks.

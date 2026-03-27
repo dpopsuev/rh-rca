@@ -9,7 +9,7 @@ import (
 
 	"github.com/dpopsuev/origami/engine"
 
-	"github.com/dpopsuev/rh-rca"
+	"github.com/dpopsuev/origami-rca"
 )
 
 // TestWeaveTranscripts_StubTransformer runs a full calibration with the stub transformer

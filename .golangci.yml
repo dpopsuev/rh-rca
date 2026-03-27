@@ -1,0 +1,67 @@
+run:
+  timeout: 5m
+  go: "1.24"
+
+linters:
+  enable:
+    # Core (existing)
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+
+    # Lex: constants over literals
+    - goconst
+
+    # Lex: sentinel errors + %w wrapping
+    - errorlint
+
+    # Lex: guard clauses, max nesting
+    - nestif
+
+    # Lex: style, performance, diagnostics
+    - gocritic
+
+    # Lex: pre-allocate slices
+    - prealloc
+
+    # Lex: spelling in comments
+    - misspell
+
+    # Lex: require justification for //nolint
+    - nolintlint
+
+linters-settings:
+  nestif:
+    min-complexity: 4  # Lex rule: max nesting depth 3
+
+  goconst:
+    min-len: 3         # minimum string length to flag
+    min-occurrences: 2 # flag if repeated 2+ times
+
+  errorlint:
+    errorf: true       # flag fmt.Errorf without %w
+    asserts: true      # flag type assertions on errors
+    comparison: true   # flag == comparison on errors
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - goconst  # test strings repeat intentionally

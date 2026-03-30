@@ -161,6 +161,7 @@ func createSession(_ context.Context, params *engine.SessionParams) (*engine.Ses
 				Shared: &engine.GraphRegistries{
 					MediatorEndpoint: mediatorEndpoint,
 				},
+				Components:     []*engine.Component{transformerComp},
 				PromptRelayer:  params.Relayer,
 				Scenario:       scenario.Name,
 				Transformer:    transformerName,

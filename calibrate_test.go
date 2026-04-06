@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -55,22 +54,13 @@ func buildCalibrationComponents(t *testing.T, scenario *rca.Scenario, domainFS f
 		stub := rca.NewStubTransformer(scenario)
 		return []*engine.Component{rca.TransformerComponent(stub)}, stub
 	case "cli":
-		command := os.Getenv("CALIBRATE_CLI_COMMAND")
-		if command == "" {
-			t.Skip("CALIBRATE_CLI_COMMAND not set — skipping CLI calibration")
-		}
-		var args []string
-		if a := os.Getenv("CALIBRATE_CLI_ARGS"); a != "" {
-			args = strings.Fields(a)
-		}
-		cliDisp, err := agentport.NewCLIDispatcher(command,
-			agentport.WithCLIArgs(args...),
-			agentport.WithCLITimeout(10*time.Minute),
-		)
-		if err != nil {
-			t.Skipf("CLI dispatcher unavailable: %v", err)
-		}
-		transformer := rca.NewRCATransformer(cliDisp, domainFS,
+		// CLI dispatcher removed in Troupe integration — use ACP via Broker instead.
+		t.Skip("CLI backend removed — use backend=llm with Troupe Broker")
+		transformer := rca.NewStubTransformer(scenario) // unreachable, satisfies compiler
+		_ = transformer
+		return nil, rca.NewStubTransformer(scenario) // unreachable
+	case "cli-legacy": // dead code placeholder
+		transformer := rca.NewRCATransformer(nil, domainFS,
 			rca.WithRCABasePath(t.TempDir()),
 		)
 		return []*engine.Component{rca.TransformerComponent(transformer)}, nil
